@@ -4,6 +4,8 @@
 
 {{ include "agent.system.persona.md" }}
 
+{{ include "agent.system.session.md" }}
+
 {{ include "agent.system.main.environment.md" }}
 
 {{ include "agent.system.main.communication.md" }}
