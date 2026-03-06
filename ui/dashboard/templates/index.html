@@ -32,6 +32,12 @@
   </div>
 </header>
 
+<!-- System thought bar -->
+<div class="thought-bar" id="thought-bar">
+  <span class="thought-label">SYS://</span>
+  <span class="thought-text" id="thought-text">initializing...</span>
+</div>
+
 <!-- Main layout -->
 <div class="layout">
 
@@ -85,7 +91,14 @@
 
     <!-- Chat -->
     <div class="tab-content" id="tab-chat">
-      <div class="chat-messages" id="chat-messages"></div>
+      <div class="context-picker-row">
+        <span class="stat-k" style="font-size:0.65rem;letter-spacing:0.08em">CONTEXT</span>
+        <select id="context-select" class="context-select">
+          <option value="">new conversation</option>
+        </select>
+        <button id="context-refresh" class="context-refresh-btn" title="refresh contexts">↻</button>
+      </div>
+            <div class="chat-messages" id="chat-messages"></div>
       <div class="chat-input-row">
         <span class="ps1">GOB://</span>
         <input type="text" id="chat-input" placeholder="send a message..." autocomplete="off">

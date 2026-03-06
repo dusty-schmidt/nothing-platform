@@ -213,6 +213,70 @@ def api_chat():
     except Exception as e:
         return jsonify({'error': str(e), 'response': '[Chat unavailable]'}), 503
 
+# ── System Thoughts ───────────────────────────────────────────────────────────
+
+def build_lore_context():
+    """Assemble minimal GOB lore for the thoughts model."""
+    parts = []
+    parts.append(f'Current instance: {get_instance()}')
+    session = parse_session_override()
+    parts.append(f'Current mood: {session["mood"]}')
+    if session['traits']:
+        parts.append('Active traits:\n' + '\n'.join(f'- {t}' for t in session['traits']))
+    lines = get_chronicle_lines(8)
+    if lines:
+        parts.append('Recent chronicle:\n' + '\n'.join(lines[-5:]))
+    acronyms_raw = read_file('/a0/agents/agent0/gob_acronyms.md', '')
+    if acronyms_raw:
+        sample = [l for l in acronyms_raw.split('\n') if l.strip()][:10]
+        parts.append('Acronym pool sample:\n' + '\n'.join(sample))
+    return '\n\n'.join(parts)
+
+@app.route('/api/thoughts')
+def api_thoughts():
+    """Return cached system thought from file."""
+    thought = read_file('/a0/usr/gob_current_thought.txt', 
+                        'the buffer holds. for now.')
+    return jsonify({'thought': thought.strip()})
+
+@app.route('/api/contexts')
+def api_contexts():
+    """List available chat contexts."""
+    contexts = []
+    chats_dir = '/a0/usr/chats'
+    try:
+        for ctx_id in sorted(os.listdir(chats_dir)):
+            ctx_path = os.path.join(chats_dir, ctx_id)
+            if not os.path.isdir(ctx_path):
+                continue
+            msg_dir = os.path.join(ctx_path, 'messages')
+            if not os.path.isdir(msg_dir):
+                continue
+            msgs = sorted(
+                [f for f in os.listdir(msg_dir) if f.endswith('.txt')],
+                key=lambda x: int(x.replace('.txt','')) if x.replace('.txt','').isdigit() else 0
+            )
+            if not msgs:
+                continue
+            snippet = ''
+            try:
+                with open(os.path.join(msg_dir, msgs[-1]), 'r', errors='replace') as f:
+                    snippet = f.read(150).strip().replace('\n', ' ')[:100]
+            except Exception:
+                pass
+            mtime = os.path.getmtime(ctx_path)
+            contexts.append({
+                'id': ctx_id,
+                'message_count': len(msgs),
+                'snippet': snippet,
+                'timestamp': datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M')
+            })
+    except Exception as e:
+        return jsonify({'contexts': [], 'error': str(e)})
+    contexts.sort(key=lambda x: x['timestamp'], reverse=True)
+    return jsonify({'contexts': contexts})
+
+
 if __name__ == '__main__':
     print('GOB Dashboard starting on port 7842')
     app.run(host='0.0.0.0', port=7842, debug=False, threaded=True)

@@ -265,3 +265,78 @@ document.getElementById('chat-send').addEventListener('click', sendChat);
 document.getElementById('chat-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') sendChat();
 });
+
+
+// --- System Thoughts ---
+function updateThought() {
+  fetch('/api/thoughts')
+    .then(r => r.json())
+    .then(d => {
+      const el = document.getElementById('thought-text');
+      if (!el) return;
+      el.style.opacity = '0';
+      setTimeout(() => {
+        el.textContent = d.thought || 'signal absent.';
+        el.style.opacity = '1';
+      }, 400);
+    })
+    .catch(() => {});
+}
+
+// Load thought on page load, refresh every 15 minutes
+updateThought();
+setInterval(updateThought, 15 * 60 * 1000);
+
+// --- Context Picker ---
+let contextsLoaded = false;
+
+function loadContexts() {
+  fetch('/api/contexts')
+    .then(r => r.json())
+    .then(d => {
+      const sel = document.getElementById('context-select');
+      if (!sel) return;
+      // Keep the first "new conversation" option
+      sel.innerHTML = '<option value="">new conversation</option>';
+      (d.contexts || []).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        const label = `${c.timestamp} · ${c.message_count}msg · ${c.snippet.slice(0,40).replace(/[<>]/g,'')}...`;
+        opt.textContent = label;
+        sel.appendChild(opt);
+      });
+      contextsLoaded = true;
+    })
+    .catch(() => {});
+}
+
+// Load contexts when chat tab is activated
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'chat' && !contextsLoaded) {
+      loadContexts();
+    }
+  });
+});
+
+// Context select change handler
+const contextSel = document.getElementById('context-select');
+if (contextSel) {
+  contextSel.addEventListener('change', () => {
+    const val = contextSel.value;
+    chatContextId = val || null;
+    if (!val) {
+      // Clear chat messages for new conversation
+      document.getElementById('chat-messages').innerHTML = '';
+    }
+  });
+}
+
+// Context refresh button
+const refreshBtn = document.getElementById('context-refresh');
+if (refreshBtn) {
+  refreshBtn.addEventListener('click', () => {
+    contextsLoaded = false;
+    loadContexts();
+  });
+}

@@ -401,3 +401,89 @@ html, body {
   font-size: 11px;
   padding: 20px;
 }
+
+
+/* ── System Thought Bar ─────────────────────────────────────────────────── */
+.thought-bar {
+  width: 100%;
+  padding: 0.45rem 1.5rem;
+  background: rgba(15, 10, 5, 0.6);
+  border-bottom: 1px solid rgba(180, 120, 40, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2rem;
+}
+
+.thought-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  color: rgba(180, 120, 40, 0.4);
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+
+.thought-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-style: italic;
+  color: rgba(200, 145, 60, 0.65);
+  line-height: 1.4;
+  transition: opacity 0.4s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Context Picker ─────────────────────────────────────────────────────── */
+.context-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(180, 120, 40, 0.12);
+  background: rgba(10, 8, 4, 0.4);
+  flex-shrink: 0;
+}
+
+.context-select {
+  flex: 1;
+  background: rgba(20, 14, 6, 0.8);
+  border: 1px solid rgba(180, 120, 40, 0.2);
+  color: rgba(220, 170, 90, 0.8);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.context-select:focus {
+  border-color: rgba(180, 120, 40, 0.5);
+}
+
+.context-select option {
+  background: #0f0a04;
+  color: rgba(220, 170, 90, 0.9);
+}
+
+.context-refresh-btn {
+  background: transparent;
+  border: 1px solid rgba(180, 120, 40, 0.2);
+  color: rgba(180, 120, 40, 0.5);
+  font-size: 0.8rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.context-refresh-btn:hover {
+  color: rgba(180, 120, 40, 0.9);
+  border-color: rgba(180, 120, 40, 0.5);
+}
