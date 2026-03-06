@@ -12,7 +12,7 @@ INSTANCE_FILE = '/a0/usr/gob_instance.txt'
 CHARACTERS_DIR = '/a0/agents/agent0/personas/characters'
 MOODS_DIR = '/a0/agents/agent0/personas/moods'
 LINEAGE = '/a0/usr/workdir/nothing-platform/chronicle/INSTANCE_LINEAGE.md'
-GOB_API = 'http://localhost:8383'
+GOB_API = 'http://localhost:80'
 
 # SSE subscriber queues
 _subscribers = []
@@ -187,16 +187,24 @@ def stream():
 def api_chat():
     """Proxy chat to GOB REST API."""
     import urllib.request
+    # Read token dynamically from settings
+    api_key = ''
+    try:
+        with open('/a0/usr/settings.json') as sf:
+            settings = json.load(sf)
+            api_key = settings.get('mcp_server_token', '')
+    except Exception:
+        pass
     data = request.json or {}
     payload = json.dumps({
         'message': data.get('message', ''),
-        'context_id': data.get('context_id')
+        'context_id': data.get('context_id') or ''
     }).encode()
     try:
         req = urllib.request.Request(
-            f'{GOB_API}/api/message',
+            f'{GOB_API}/api_message',
             data=payload,
-            headers={'Content-Type': 'application/json'},
+            headers={'Content-Type': 'application/json', 'X-API-KEY': api_key},
             method='POST'
         )
         with urllib.request.urlopen(req, timeout=60) as resp:
