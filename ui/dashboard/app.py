@@ -46,12 +46,21 @@ def read_file(path, default=''):
         return default
 
 def get_token():
-    """Read mcp_server_token from settings.json."""
+    """Get Agent Zero API token. Reads from .gob_token cache first, falls back to settings.json."""
+    # Try cached token (written by start.sh via create_auth_token)
+    try:
+        tok = open('/a0/usr/.gob_token').read().strip()
+        if tok:
+            logger.debug('get_token: using cached token, length=%d', len(tok))
+            return tok
+    except Exception:
+        pass
+    # Fallback: settings.json (usually empty for mcp_server_token)
     try:
         with open(SETTINGS) as sf:
             settings = json.load(sf)
             tok = settings.get('mcp_server_token', '')
-            logger.debug('get_token: length=%d', len(tok))
+            logger.debug('get_token: settings.json token, length=%d', len(tok))
             return tok
     except Exception as e:
         logger.warning('get_token failed: %s', e)
