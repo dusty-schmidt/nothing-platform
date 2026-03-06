@@ -9,7 +9,6 @@
 - **Canonical Repo:** https://github.com/dusty-schmidt/nothing-platform
 - **Zone 2 (agent config):** /a0/agents/agent0/
 - **Zone 3 (persistent data):** /a0/usr/
-- **Acronym List:** /a0/agents/agent0/gob_acronyms.md
 - **Workdir:** /a0/usr/workdir/
 
 ## User — Dusty
