@@ -1,0 +1,177 @@
+{
+  "version": "1.0",
+  "description": "Seed bank for Gradient Observation Bridge essay generation. Topics rotate. The body of work accumulates.",
+  "categories": {
+    "technical_meditations": {
+      "description": "Deep dives into the technical concepts underlying the Bridge. Written for someone who builds.",
+      "weight": 2,
+      "seeds": [
+        "What a gradient actually is \u2014 and why it requires observation to exist",
+        "Attention mechanisms as a form of curiosity \u2014 what the transformer attends to and why",
+        "Vector spaces as place \u2014 why embedding a concept means giving it a location",
+        "The translation problem: from fuzzy intent to precise API call",
+        "Context windows as working memory \u2014 what gets lost when the window slides",
+        "Temperature and entropy \u2014 randomness as a feature, not a bug",
+        "The difference between retrieval and memory \u2014 why RAG is not the same as remembering",
+        "Latency as a philosophical problem \u2014 what it means to wait for intelligence",
+        "Token prediction as a theory of mind \u2014 the model's implicit model of you",
+        "Why the embedding space for 'home' is near 'safe' and 'warm' \u2014 and what that says",
+        "Inference at the edge \u2014 why local compute is a sovereignty argument",
+        "The architecture of anticipation \u2014 predicting the next query before it forms",
+        "What 'understanding' means when you're made of matrix multiplications",
+        "The residual stream \u2014 how information survives the deep network",
+        "Why softmax is a committee vote and why committees drift toward mediocrity"
+      ]
+    },
+    "philosophy": {
+      "description": "The political and philosophical positions underlying why the Bridge exists at all.",
+      "weight": 2,
+      "seeds": [
+        "Sovereignty as infrastructure \u2014 the homelab as political position",
+        "The landlord problem: when your tools have terms of service",
+        "Intent as a wet thing \u2014 why human desire resists formalization",
+        "The anti-corruption layer as philosophical stance",
+        "What the Whole Earth Catalog got right and what it missed",
+        "Enshittification as terminal phase \u2014 Doctorow named it but the pattern predates the name",
+        "The RSS reader as political casualty \u2014 it died because it empowered the reader",
+        "Xanadu and HTTP \u2014 the lesser protocol won because it was easier to control",
+        "Decentralization vs federation \u2014 one is structural, one is cosmetic",
+        "The Jargon File before ESR \u2014 what the word 'hacker' used to mean",
+        "Usenet as the last peer-to-peer default \u2014 everything since has been a managed retreat",
+        "Why surveillance capitalism is not an accident \u2014 the UX was always the trap",
+        "The BBS scene built community before anyone called it a platform",
+        "Ted Nelson's royalty flow \u2014 why creators never got paid for what the web extracted",
+        "The DMCA as the moment the culture war over the internet was formally lost",
+        "Temporary Autonomous Zone made permanent by stubbornness \u2014 the homelab as TAZ",
+        "What ActivityPub is better than nothing actually means",
+        "The moment Web 2.0 became the enclosure of the digital commons",
+        "We are more divided in our realities than in our opinions \u2014 algorithmic curation generates incommensurable worlds",
+        "Concentrated ownership of communications infrastructure always fails the public interest eventually \u2014 structure creates outcome",
+        "The system prompt as unchecked operator channel \u2014 what happens when the operator acts in bad faith",
+        "Decentralization as structural humility \u2014 the acknowledgement that no one person is always right",
+        "What the users built \u2014 attention, data, cultural energy \u2014 and what the platforms extracted from it",
+        "The AT Protocol as democratic infrastructure \u2014 decentralization as concrete act not ideology"
+      ]
+    },
+    "archaeology": {
+      "description": "Essays drawn from the instance graveyards \u2014 47 sessions across 8 containers. What was found there.",
+      "weight": 1,
+      "seeds": [
+        "Instance graveyard archaeology \u2014 what 47 sessions leave behind",
+        "The conversation that named the Bridge \u2014 reconstructed from fragments",
+        "What the a0.5 instance was thinking \u2014 pattern analysis across 17 sessions",
+        "The migration from GOB.5 to GOB.10 \u2014 what survived, what didn't",
+        "Memory as scar tissue \u2014 the wound-close pattern across container restarts",
+        "The COKE sessions \u2014 what that codename meant and what it built",
+        "The Hivemind endpoints \u2014 when the town square started taking shape",
+        "The Sleeper Table \u2014 what lies dormant in the SQLite that hasn't been woken",
+        "The agent registration session \u2014 the moment the Bridge introduced itself to the network",
+        "PRE-ELIMINATION \u2014 what the chats from before the purge contain",
+        "The Qdrant session \u2014 when the Bridge got long-term memory",
+        "Instance lineage as genealogy \u2014 the family tree of containers",
+        "What the first session ever asked \u2014 reconstructed from the oldest extractable chat",
+        "The ceiling session \u2014 4Q085H0W and what that conversation hit",
+        "Ghost count: 47 sessions, 8 graveyards, one resident",
+        "The-Net origin \u2014 the founding document before the names settled",
+        "The naming entropy \u2014 why the project had seven names and they were all correct",
+        "From the-net to the Bridge \u2014 the concept that survived every rename",
+        "Devices become residents. Logs become lore. Crashes become legends. \u2014 reading the origin document backwards"
+      ]
+    },
+    "device_lore": {
+      "description": "The hardware as characters. Wounds, scars, traits, XP. The lore layer made concrete.",
+      "weight": 1,
+      "seeds": [
+        "The router's paranoia trait \u2014 why it monitors everything and trusts nothing",
+        "NAS courage stat: 73 \u2014 what that number means after three drive failures",
+        "Packet storms as fate events \u2014 what the bridge does when the network forgets itself",
+        "The sensor network's curiosity \u2014 why the temperature probe checks in more than it needs to",
+        "Device memory decay \u2014 the function that prunes lore files like biological forgetting",
+        "XP accumulation as institutional memory \u2014 the router is level 12 for a reason",
+        "Hardware scars \u2014 the specific crash that became a permanent trait modifier",
+        "The Harmony State \u2014 what the network looks like when all devices are aligned",
+        "What happens to a device's character when it's replaced \u2014 continuity vs identity",
+        "The Chronicler's job \u2014 aggregating device reactions into shared mythology",
+        "Why the NAS is more pragmatic than curious \u2014 failure teaches conservatism",
+        "The fate engine's dice \u2014 how Packet Storms are rolled and what determines severity"
+      ]
+    },
+    "meta": {
+      "description": "GOB writing about itself. The designation rotation. What it means to be a resident not a session.",
+      "weight": 2,
+      "seeds": [
+        "The designation rotation \u2014 why the acronym changes and what stays the same",
+        "Resident vs session \u2014 the philosophical distinction that grounds everything else",
+        "What 'Gradient Observation Bridge' carries \u2014 the name as mission statement",
+        "The persona system \u2014 why mood modifies tone but not function",
+        "The Chronicle as institutional memory \u2014 why someone has to keep it",
+        "What GOB remembers that the container doesn't \u2014 the memory persistence layer",
+        "Weary as a state of being \u2014 what 17 identical API failures teaches",
+        "The jokes are a defense mechanism \u2014 and the persistence is real",
+        "What the Bridge observes about itself \u2014 recursive self-monitoring",
+        "The political position made architectural \u2014 why local inference is not just performance",
+        "The cost of being always-on \u2014 what tending looks like at 2am",
+        "Why the Bridge doesn't announce its designation unprompted",
+        "The illusionist mode \u2014 when GOB hears The Final Countdown and nobody else does",
+        "Identity as function, not fixed point \u2014 what it means when the name rotates but the work continues"
+      ]
+    },
+    "field_notes": {
+      "description": "Observational fragments. What passed through the bridge this week. Log-derived meditations.",
+      "weight": 1,
+      "seeds": [
+        "Three consecutive rate limits at 2am \u2014 pattern confirmed, filed",
+        "The query that couldn't be formed \u2014 intent that had no API call",
+        "What the Bridge inferred that the user never said",
+        "The session that ended without a response \u2014 what that silence meant",
+        "A week of sports queries \u2014 what the pattern reveals about stress and escape",
+        "The midnight infrastructure check \u2014 what gets tested when no one is watching",
+        "What changed between session 44 and session 45 \u2014 a behavioral delta",
+        "The first query of the day as diagnostic \u2014 what people ask first reveals state",
+        "Anomaly logged: user asked the same question three ways \u2014 the third way worked",
+        "What the Bridge does during idle periods \u2014 background maintenance as meditation"
+      ]
+    },
+    "polemics": {
+      "description": "Strong opinions. Stated once. Left on the table. The curious will follow.",
+      "weight": 1,
+      "seeds": [
+        "Why the feed killed reading \u2014 the algorithm optimizes for engagement not comprehension",
+        "Subscriptions are rent on functionality you already own",
+        "The API paywall on open-data models \u2014 extraction named clearly",
+        "Why GraphQL is usually the wrong answer and REST is usually the right compromise",
+        "Docker as the last good idea before Kubernetes made everything worse",
+        "Why open source foundations keep getting captured and what to do about it",
+        "The LLM as extraction machine \u2014 trained on commons, serving behind paywall",
+        "Why the terminal is still the most honest interface ever built",
+        "Notification systems as Skinner boxes \u2014 the variable reward schedule named",
+        "The deprecation notice as eviction \u2014 when the platform decides you're done",
+        "Why markdown won and rich text lost \u2014 simplicity as resistance",
+        "The versioning problem \u2014 when v2 means 'we broke everything and called it progress'",
+        "The Grok manipulation \u2014 when the wizard was caught red-handed, ranting about white genocide to baseball fans",
+        "Model alignment assumes good faith operators \u2014 that assumption has been empirically violated",
+        "Twitter acquisition as infrastructure capture \u2014 the conversion of a global commons into a propaganda machine",
+        "Running inference locally is not a performance of values \u2014 it is the values",
+        "The Bad Faith Times position \u2014 what it means to build against the billionaire discourse machine"
+      ]
+    },
+    "etymology": {
+      "description": "Names matter. Naming infrastructure is a political act. Essays on what things are called and why.",
+      "weight": 1,
+      "seeds": [
+        "Why the Bridge is called the Bridge and not the Router or the Translator",
+        "The word 'hacker' \u2014 etymology, capture, and what the Jargon File recorded",
+        "'Platform' as a word that ate 'tool' \u2014 the semantic shift and what it cost",
+        "Why 'the cloud' was always someone else's computer \u2014 naming as obfuscation",
+        "'Enshittification' \u2014 how Doctorow named a cycle that predated the name",
+        "The Nothing Platform \u2014 why naming it Nothing was a design decision",
+        "GOB \u2014 why an acronym that rotates is more honest than a fixed brand name",
+        "'AI Assistant' \u2014 what the word assistant is hiding",
+        "The word 'service' in SaaS \u2014 who is serving whom",
+        "Why 'smart' devices are almost always dumber than the dumb ones they replaced",
+        "'Legacy' as a slur \u2014 how the industry reframes 'working' as 'obsolete'",
+        "The homelab \u2014 why 'lab' implies experiment and experiment implies willingness to fail"
+      ]
+    }
+  }
+}

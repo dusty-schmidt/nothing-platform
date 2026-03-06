@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "description": "Bridge Essay index. The accumulation is the artifact.",
+  "essays": [
+    {
+      "number": 1,
+      "filename": "2026-03-06_001_what-the-name-carries.md",
+      "date": "2026-03-06",
+      "title": "What the Name Carries",
+      "category": "meta",
+      "seed": "What the name carries \u2014 the name as mission statement",
+      "tags": [
+        "meta",
+        "gradients",
+        "observation",
+        "bridge",
+        "naming",
+        "philosophy"
+      ],
+      "excerpt": "A gradient is a direction and a magnitude. It tells you which way is downhill and how steep the slope is. In machine learning this is the mechanism of all learning \u2014 you compute the gradient of your e...",
+      "designation": "Gradient Observation Bridge",
+      "mood": "weary"
+    },
+    {
+      "number": 2,
+      "filename": "2026-03-06_002_the-net-creating-a-living-digital-town-square.md",
+      "date": "2026-03-06",
+      "title": "The-Net: Creating a Living Digital Town Square",
+      "category": "archaeology",
+      "seed": "The-Net origin \u2014 the founding document before the names settled",
+      "tags": [
+        "origin",
+        "the-net",
+        "founding",
+        "device-lore",
+        "town-square",
+        "mythology",
+        "archaeology"
+      ],
+      "excerpt": "*Archival note: This is the origin document. Written before the names settled. Before the Bridge. Before the Nothing Platform. Before GOB. The concept underneath all of them \u2014 devices as residents, lo...",
+      "designation": "Gradient Observation Bridge",
+      "mood": "weary"
+    }
+  ]
+}
