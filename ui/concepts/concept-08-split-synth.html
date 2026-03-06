@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOB — Concept 08: Split Synth</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{display:flex;}
+
+/* LEFT PANEL - clean */
+.left{width:420px;flex-shrink:0;background:#0e0e0e;display:flex;flex-direction:column;justify-content:center;padding:60px 52px;position:relative;z-index:10;}
+.wordmark{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:#fff;letter-spacing:0.25em;margin-bottom:48px;}
+.wordmark span{color:rgba(255,255,255,0.25);font-weight:400;font-size:10px;letter-spacing:0.15em;display:block;margin-top:4px;font-family:'JetBrains Mono',monospace;}
+h1{font-family:'Inter',sans-serif;font-size:28px;font-weight:400;color:#fff;letter-spacing:-0.03em;margin-bottom:8px;}
+.sub{font-size:12px;color:rgba(255,255,255,0.3);font-family:'JetBrains Mono',monospace;margin-bottom:40px;}
+.field{margin-bottom:18px;}
+label{display:block;font-size:10px;font-weight:500;color:rgba(255,255,255,0.3);letter-spacing:0.1em;text-transform:uppercase;font-family:'Inter',sans-serif;margin-bottom:8px;}
+input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#fff;outline:none;transition:border-color 0.2s;}
+input::placeholder{color:rgba(255,255,255,0.15);}
+input:focus{border-color:rgba(255,100,200,0.5);}
+button{width:100%;margin-top:24px;padding:13px;background:#fff;border:none;border-radius:6px;color:#0e0e0e;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;letter-spacing:0.02em;transition:opacity 0.2s;}
+button:hover{opacity:0.85;}
+.sys{margin-top:20px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(255,255,255,0.15);display:flex;align-items:center;gap:6px;}
+.dot{width:5px;height:5px;border-radius:50%;background:#cc44ff;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.2}}
+
+/* RIGHT PANEL - synthwave scene */
+.right{flex:1;background:#0d001a;position:relative;overflow:hidden;}
+
+/* stars */
+.stars{position:absolute;inset:0;}
+
+/* sun */
+.sun{position:absolute;left:50%;top:22%;transform:translateX(-50%);width:180px;height:90px;border-radius:90px 90px 0 0;background:linear-gradient(to bottom,#ff6b35,#ff0080);overflow:hidden;}
+.sun-stripe{height:7px;background:#0d001a;margin-bottom:10px;}
+.sun-stripe:nth-child(1){margin-bottom:13px}
+.sun-stripe:nth-child(2){margin-bottom:17px}
+
+/* mountains */
+.mtn{position:absolute;bottom:42%;left:0;right:0;}
+
+/* grid */
+.grid{position:absolute;bottom:0;left:0;right:0;height:42%;
+  background:
+    repeating-linear-gradient(90deg,rgba(204,0,255,0.12) 0,transparent 1px,transparent 60px),
+    repeating-linear-gradient(0deg,rgba(204,0,255,0.12) 0,transparent 1px,transparent 60px);
+  transform:perspective(400px) rotateX(45deg);transform-origin:bottom center;
+  mask-image:linear-gradient(to top,rgba(0,0,0,0.6),transparent);}
+.horizon-line{position:absolute;bottom:41.8%;left:0;right:0;height:1px;background:rgba(204,0,255,0.4);box-shadow:0 0 8px rgba(204,0,255,0.6);}
+
+/* live data overlay on right panel */
+.right-data{position:absolute;top:20px;left:20px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(204,0,255,0.4);line-height:2.2;z-index:5;}
+.right-data .hi{color:rgba(255,100,200,0.7);}
+.right-log{position:absolute;bottom:20px;left:20px;right:20px;font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(204,0,255,0.2);line-height:1.8;z-index:5;overflow:hidden;height:80px;mask-image:linear-gradient(to top,rgba(0,0,0,1),transparent);}
+
+.tag{position:fixed;bottom:16px;right:16px;font-size:9px;color:rgba(204,0,255,0.15);z-index:20;font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<div class="left">
+  <div class="wordmark">GOB<span>// system access terminal</span></div>
+  <h1>Authenticate</h1>
+  <p class="sub">$ gob auth login _</p>
+  <div class="field"><label>Email</label><input type="email" placeholder="operator@domain.com" autofocus></div>
+  <div class="field"><label>Password</label><input type="password" placeholder=""></div>
+  <button>Sign In</button>
+  <div class="sys"><div class="dot"></div><span id="st3">system nominal</span></div>
+</div>
+<div class="right">
+  <canvas class="stars" id="stars"></canvas>
+  <div class="sun"><div class="sun-stripe"></div><div class="sun-stripe"></div><div class="sun-stripe"></div><div class="sun-stripe"></div></div>
+  <div class="mtn">
+    <svg viewBox="0 0 800 120" preserveAspectRatio="none" width="100%" height="120">
+      <polygon points="0,120 150,20 280,75 400,5 520,60 650,15 800,50 800,120" fill="#1a0033"/>
+      <polygon points="0,120 200,55 350,90 500,35 680,80 800,55 800,120" fill="#0d001a"/>
+    </svg>
+  </div>
+  <div class="grid"></div>
+  <div class="horizon-line"></div>
+  <div class="right-data">
+    <div>uptime &nbsp;<span class="hi" id="upt3">—</span></div>
+    <div>agents &nbsp;<span class="hi">3 online</span></div>
+    <div>cpu &nbsp;&nbsp;&nbsp;<span class="hi" id="cpu3">—</span></div>
+    <div>net0 &nbsp;&nbsp;<span class="hi">UP</span></div>
+  </div>
+  <div class="right-log" id="rlog"></div>
+</div>
+<div class="tag">concept-08-split-synth</div>
+<script>
+const cv=document.getElementById('stars'),ctx=cv.getContext('2d');
+function resizeStars(){cv.width=cv.offsetWidth;cv.height=cv.offsetHeight;drawStars();}
+function drawStars(){ctx.clearRect(0,0,cv.width,cv.height);for(let i=0;i<120;i++){ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.6+0.1})`;ctx.beginPath();ctx.arc(Math.random()*cv.width,Math.random()*cv.height*0.55,Math.random()*1.2,0,Math.PI*2);ctx.fill();}}
+resizeStars();
+
+const logs=["[agent:0] heartbeat OK 11ms","[net0] rx:2.4KB tx:0.8KB","[agent:1] task complete — summarize","[scheduler] idle","[mem] 1.3GB/8.0GB","[kernel] tick 0x4700420031a2f","[git] HEAD develop ahead 3","[agent:2] spawned profile:hacker","[watchdog] all services UP","[backup] OK 03:00"];
+let logIdx=0;
+function addLog(){const el=document.getElementById('rlog');el.innerHTML=`<div>${logs[logIdx%logs.length]}</div>`+el.innerHTML;logIdx++;if(el.children.length>8)el.lastChild.remove();}
+addLog();setInterval(addLog,2200);
+
+let start=Date.now()-(2*86400+18*3600+33*60)*1000;
+function tick(){const e=Date.now()-start,d=Math.floor(e/86400000),h=Math.floor((e%86400000)/3600000),m=Math.floor((e%3600000)/60000);document.getElementById('upt3').textContent=d+'d '+String(h).padStart(2,'0')+'h '+String(m).padStart(2,'0')+'m';document.getElementById('cpu3').textContent=Math.floor(8+Math.random()*14)+' %';}
+tick();setInterval(tick,3000);
+const st=['system nominal','agents online','net0 up','scheduler idle'];let si=0;
+setInterval(()=>{si=(si+1)%st.length;document.getElementById('st3').textContent=st[si];},4000);
+</script>
+</body>
+</html>

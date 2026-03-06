@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOB — Concept 10: Dusk</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400&family=Orbitron:wght@500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{display:flex;align-items:center;justify-content:center;position:relative;
+  background:linear-gradient(to bottom,#0a0015 0%,#12002a 30%,#1e0040 55%,#2a0a1a 75%,#0a0008 100%);}
+
+/* Dusk sky layers */
+.sky-glow{position:fixed;bottom:35%;left:50%;transform:translateX(-50%);width:600px;height:200px;border-radius:50%;background:radial-gradient(ellipse,rgba(180,0,255,0.12) 0%,transparent 70%);pointer-events:none;}
+.sky-glow2{position:fixed;bottom:32%;left:50%;transform:translateX(-50%);width:400px;height:100px;border-radius:50%;background:radial-gradient(ellipse,rgba(255,0,120,0.08) 0%,transparent 70%);pointer-events:none;}
+
+/* stars */
+.starfield{position:fixed;inset:0;pointer-events:none;}
+
+/* mountains silhouette */
+.mountains{position:fixed;bottom:28%;left:0;right:0;pointer-events:none;}
+
+/* grid */
+.grid-f{position:fixed;bottom:0;left:0;right:0;height:30%;
+  background:
+    repeating-linear-gradient(90deg,rgba(180,0,255,0.1) 0,transparent 1px,transparent 70px),
+    repeating-linear-gradient(0deg,rgba(180,0,255,0.1) 0,transparent 1px,transparent 70px);
+  transform:perspective(600px) rotateX(55deg);transform-origin:bottom center;
+  mask-image:linear-gradient(to top,rgba(0,0,0,0.4),transparent);}
+.grid-line{position:fixed;bottom:29.8%;left:0;right:0;height:1px;background:rgba(180,0,255,0.25);}
+
+/* scanlines */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px);pointer-events:none;z-index:50;}
+
+/* Side live data */
+.side{position:fixed;font-family:'JetBrains Mono',monospace;font-size:9px;line-height:2.4;z-index:10;}
+.side.l{left:24px;top:50%;transform:translateY(-50%);color:rgba(180,0,255,0.25);}
+.side.r{right:24px;top:50%;transform:translateY(-50%);color:rgba(180,0,255,0.25);text-align:right;}
+.side .hi{color:rgba(255,80,200,0.6);}
+.side .label{color:rgba(180,0,255,0.15);font-size:8px;letter-spacing:0.1em;}
+
+/* scrolling event log - bottom */
+.event-log{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);width:500px;font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(180,0,255,0.2);text-align:center;z-index:10;white-space:nowrap;overflow:hidden;}
+
+/* CARD */
+.card{position:relative;z-index:20;background:rgba(10,0,21,0.75);border:1px solid rgba(180,0,255,0.2);border-radius:14px;padding:44px 40px;width:360px;backdrop-filter:blur(20px);box-shadow:0 0 80px rgba(120,0,180,0.15),inset 0 0 40px rgba(120,0,180,0.03);}
+.logo{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:500;color:rgba(220,180,255,0.9);letter-spacing:0.3em;margin-bottom:6px;}
+.logo-line{width:40px;height:1px;background:rgba(180,0,255,0.3);margin-bottom:32px;}
+h1{font-size:24px;font-weight:400;color:rgba(240,220,255,0.95);letter-spacing:-0.03em;font-family:'Inter',sans-serif;margin-bottom:6px;}
+.sub{font-size:11px;color:rgba(180,0,255,0.35);font-family:'JetBrains Mono',monospace;margin-bottom:36px;letter-spacing:0.05em;}
+.field{margin-bottom:16px;}
+label{display:block;font-size:9px;font-weight:500;color:rgba(180,0,255,0.35);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;font-family:'Inter',sans-serif;}
+input{width:100%;background:rgba(180,0,255,0.05);border:1px solid rgba(180,0,255,0.15);border-radius:8px;padding:12px 14px;font-size:13px;font-family:'JetBrains Mono',monospace;color:rgba(240,220,255,0.9);outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+input::placeholder{color:rgba(180,0,255,0.15);}
+input:focus{border-color:rgba(180,0,255,0.5);box-shadow:0 0 16px rgba(120,0,180,0.15);}
+button{width:100%;margin-top:20px;padding:13px;background:rgba(180,0,255,0.12);border:1px solid rgba(180,0,255,0.3);border-radius:8px;color:rgba(220,180,255,0.9);font-family:'Orbitron',sans-serif;font-size:10px;font-weight:500;letter-spacing:0.25em;cursor:pointer;transition:all 0.2s;}
+button:hover{background:rgba(180,0,255,0.22);border-color:rgba(180,0,255,0.6);box-shadow:0 0 20px rgba(120,0,180,0.2);}
+.status{margin-top:18px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(180,0,255,0.25);display:flex;align-items:center;justify-content:center;gap:6px;}
+.pls{width:5px;height:5px;border-radius:50%;background:rgba(180,0,255,0.6);animation:pl 2s ease-in-out infinite;}
+@keyframes pl{0%,100%{opacity:1}50%{opacity:0.15}}
+.tag{position:fixed;bottom:16px;right:16px;font-size:9px;color:rgba(180,0,255,0.1);z-index:60;font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<canvas class="starfield" id="stars2"></canvas>
+<div class="sky-glow"></div>
+<div class="sky-glow2"></div>
+<div class="mountains">
+  <svg viewBox="0 0 1440 160" preserveAspectRatio="none" width="100%" height="160">
+    <polygon points="0,160 180,30 320,90 500,10 680,75 860,20 1040,80 1200,35 1440,65 1440,160" fill="rgba(20,0,40,0.9)"/>
+    <polygon points="0,160 250,70 420,110 600,45 780,100 960,50 1150,95 1350,60 1440,80 1440,160" fill="rgba(10,0,21,0.95)"/>
+  </svg>
+</div>
+<div class="grid-f"></div>
+<div class="grid-line"></div>
+
+<div class="side l">
+  <div class="label">sys.uptime</div>
+  <div class="hi" id="upt5">—</div>
+  <div class="label" style="margin-top:16px">cpu.load</div>
+  <div class="hi" id="cpu5">—</div>
+  <div class="label" style="margin-top:16px">mem.used</div>
+  <div class="hi" id="mem5">—</div>
+  <div class="label" style="margin-top:16px">agents</div>
+  <div class="hi">3 / online</div>
+</div>
+
+<div class="side r">
+  <div class="label">net0.status</div>
+  <div class="hi">LINK UP</div>
+  <div class="label" style="margin-top:16px">git.branch</div>
+  <div class="hi">develop</div>
+  <div class="label" style="margin-top:16px">backup</div>
+  <div class="hi">current</div>
+  <div class="label" style="margin-top:16px">scheduler</div>
+  <div class="hi">idle</div>
+</div>
+
+<div class="event-log" id="evlog"></div>
+
+<div class="card">
+  <div class="logo">GOB</div>
+  <div class="logo-line"></div>
+  <h1>Access Required</h1>
+  <p class="sub">// authorized operators only</p>
+  <div class="field"><label>Identity</label><input type="email" placeholder="operator@domain.com" autofocus></div>
+  <div class="field"><label>Key</label><input type="password" placeholder=""></div>
+  <button>AUTHENTICATE</button>
+  <div class="status"><div class="pls"></div><span id="st5">system nominal</span></div>
+</div>
+
+<div class="tag">concept-10-dusk</div>
+<script>
+// Stars
+const cv=document.getElementById('stars2'),ctx=cv.getContext('2d');
+cv.width=window.innerWidth;cv.height=window.innerHeight;
+for(let i=0;i<160;i++){ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.5+0.05})`;ctx.beginPath();ctx.arc(Math.random()*cv.width,Math.random()*cv.height*0.65,Math.random()*1.2,0,Math.PI*2);ctx.fill();}
+
+// Uptime
+let start=Date.now()-(2*86400+18*3600+33*60)*1000;
+function tick(){const e=Date.now()-start,d=Math.floor(e/86400000),h=Math.floor((e%86400000)/3600000),m=Math.floor((e%3600000)/60000);document.getElementById('upt5').textContent=d+'d '+String(h).padStart(2,'0')+'h '+String(m).padStart(2,'0')+'m';document.getElementById('cpu5').textContent=Math.floor(8+Math.random()*14)+' %';document.getElementById('mem5').textContent=(1.1+Math.sin(Date.now()/25000)*0.3).toFixed(2)+' GB';}
+tick();setInterval(tick,3000);
+
+// Event log ticker
+const evs=["agent:0 heartbeat OK","scheduler idle","net0 rx:2.4KB","agent:1 task complete","git HEAD develop +3","backup OK 03:00","kernel tick 0x47004200","agent:2 spawned hacker","watchdog all UP","dns resolved 1ms"];
+let ei=0;
+function nextEv(){document.getElementById('evlog').textContent='// '+evs[ei%evs.length];ei++;}
+nextEv();setInterval(nextEv,3000);
+
+const st=['system nominal','agents online','net0 up','scheduler idle'];let si=0;
+setInterval(()=>{si=(si+1)%st.length;document.getElementById('st5').textContent=st[si];},4500);
+</script>
+</body>
+</html>

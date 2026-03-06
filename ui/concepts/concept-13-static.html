@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOB — Concept 13: Static</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#07040f;font-family:'Inter',sans-serif;overflow:hidden;}
+body{display:flex;align-items:center;justify-content:center;position:relative;}
+canvas#static{position:fixed;inset:0;z-index:0;opacity:0.18;}
+.aurora{position:fixed;inset:0;z-index:1;pointer-events:none;}
+.card{position:relative;z-index:20;background:rgba(7,4,15,0.82);border:1px solid rgba(140,80,255,0.18);border-radius:16px;padding:48px 42px;width:370px;backdrop-filter:blur(24px);box-shadow:0 8px 80px rgba(80,0,180,0.15),0 0 0 1px rgba(140,80,255,0.06);}
+.mark{font-size:12px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:rgba(180,140,255,0.35);margin-bottom:40px;font-family:'JetBrains Mono',monospace;}
+.mark strong{color:rgba(210,180,255,0.85);}
+h1{font-size:28px;font-weight:300;color:rgba(230,215,255,0.95);letter-spacing:-0.04em;margin-bottom:8px;}
+.sub{font-size:12px;color:rgba(140,80,255,0.35);font-family:'JetBrains Mono',monospace;margin-bottom:40px;}
+.field{margin-bottom:18px;}
+label{display:block;font-size:11px;font-weight:500;color:rgba(180,140,255,0.35);margin-bottom:8px;letter-spacing:0.04em;}
+input{width:100%;background:rgba(140,80,255,0.06);border:1px solid rgba(140,80,255,0.15);border-radius:10px;padding:13px 16px;font-size:14px;font-family:inherit;color:rgba(230,215,255,0.9);outline:none;transition:border-color 0.2s,background 0.2s;}
+input::placeholder{color:rgba(140,80,255,0.15);}
+input:focus{border-color:rgba(140,80,255,0.45);background:rgba(140,80,255,0.08);}
+button{width:100%;margin-top:22px;padding:14px;background:rgba(140,80,255,0.14);border:1px solid rgba(140,80,255,0.28);border-radius:10px;color:rgba(210,180,255,0.9);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;letter-spacing:0.02em;transition:all 0.2s;}
+button:hover{background:rgba(140,80,255,0.22);border-color:rgba(140,80,255,0.5);}
+.sysline{margin-top:20px;display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(140,80,255,0.22);}
+.pls{width:5px;height:5px;border-radius:50%;background:rgba(140,80,255,0.5);animation:pl 2.5s ease-in-out infinite;}
+@keyframes pl{0%,100%{opacity:1}50%{opacity:0.1}}
+.corner{position:fixed;font-family:'JetBrains Mono',monospace;font-size:9px;line-height:2.2;z-index:15;}
+.corner.tl{top:20px;left:20px;color:rgba(140,80,255,0.18);}
+.corner.tr{top:20px;right:20px;color:rgba(140,80,255,0.18);text-align:right;}
+.corner .v{color:rgba(180,120,255,0.45);}
+.tag{position:fixed;bottom:16px;right:16px;font-size:9px;color:rgba(140,80,255,0.08);z-index:60;font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<canvas id="static"></canvas>
+<div class="aurora" id="aurora"></div>
+<div class="corner tl">
+  <div>GOB <span class="v">v0.2.0</span></div>
+  <div>uptime <span class="v" id="upt">—</span></div>
+  <div>cpu <span class="v" id="cpu">—</span></div>
+</div>
+<div class="corner tr">
+  <div>mem <span class="v" id="mem">—</span></div>
+  <div>agents <span class="v">3</span></div>
+  <div>net0 <span class="v">UP</span></div>
+</div>
+<div class="card">
+  <div class="mark"><strong>GOB</strong> &nbsp;// system</div>
+  <h1>Sign in</h1>
+  <p class="sub">// access restricted</p>
+  <div class="field"><label>Email</label><input type="email" placeholder="operator@domain.com" autofocus></div>
+  <div class="field"><label>Password</label><input type="password" placeholder="••••••••"></div>
+  <button>Continue</button>
+  <div class="sysline"><div class="pls"></div><span id="st">system nominal</span></div>
+</div>
+<div class="tag">concept-13-static</div>
+<script>
+// Static noise canvas
+const cv=document.getElementById('static'),ctx=cv.getContext('2d');
+cv.width=window.innerWidth;cv.height=window.innerHeight;
+function noise(){const img=ctx.createImageData(cv.width,cv.height);const d=img.data;for(let i=0;i<d.length;i+=4){const v=Math.random()*255;d[i]=v*0.3;d[i+1]=v*0.1;d[i+2]=v*0.5;d[i+3]=255;}ctx.putImageData(img,0,0);}
+noise();setInterval(noise,80);
+// Aurora blobs via SVG filters
+const aur=document.getElementById('aurora');
+aur.innerHTML=`<svg style="width:100%;height:100%;position:absolute;inset:0" viewBox="0 0 ${window.innerWidth} ${window.innerHeight}" preserveAspectRatio="none">
+<defs><filter id="blur"><feGaussianBlur stdDeviation="80"/></filter></defs>
+<ellipse cx="${window.innerWidth*0.3}" cy="${window.innerHeight*0.4}" rx="300" ry="150" fill="rgba(100,0,200,0.08)" filter="url(#blur)"/>
+<ellipse cx="${window.innerWidth*0.7}" cy="${window.innerHeight*0.6}" rx="250" ry="120" fill="rgba(200,0,150,0.05)" filter="url(#blur)"/>
+<ellipse cx="${window.innerWidth*0.5}" cy="${window.innerHeight*0.2}" rx="200" ry="100" fill="rgba(80,0,255,0.06)" filter="url(#blur)"/>
+</svg>`;
+let start=Date.now()-(2*86400+18*3600+33*60)*1000;
+function tick(){const e=Date.now()-start,d=Math.floor(e/86400000),h=Math.floor((e%86400000)/3600000),m=Math.floor((e%3600000)/60000);document.getElementById('upt').textContent=d+'d '+String(h).padStart(2,'0')+'h '+String(m).padStart(2,'0')+'m';document.getElementById('cpu').textContent=Math.floor(8+Math.random()*14)+' %';document.getElementById('mem').textContent=(1.1+Math.sin(Date.now()/25000)*0.3).toFixed(2)+' GB';}
+tick();setInterval(tick,3000);
+const st=['system nominal','agents online','net0 up','scheduler idle'];let si=0;
+setInterval(()=>{si=(si+1)%st.length;document.getElementById('st').textContent=st[si];},4500);
+</script>
+</body>
+</html>

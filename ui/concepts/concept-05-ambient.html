@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOB — Login / Concept 05: Ambient</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: 'Inter', sans-serif; }
+  body { display: flex; min-height: 100vh; background: #fff; }
+  .left { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 60px; position: relative; overflow: hidden; background: #fafafa; }
+  .ambient { position: absolute; border-radius: 50%; filter: blur(60px); pointer-events: none; }
+  .a1 { width: 400px; height: 400px; background: rgba(99,102,241,0.12); top: -80px; left: -80px; }
+  .a2 { width: 300px; height: 300px; background: rgba(236,72,153,0.08); bottom: -40px; right: -40px; }
+  .a3 { width: 250px; height: 250px; background: rgba(16,185,129,0.08); top: 50%; left: 40%; }
+  .left-inner { position: relative; z-index: 1; max-width: 400px; width: 100%; }
+  .wordmark { display: flex; align-items: baseline; gap: 10px; margin-bottom: 56px; }
+  .wordmark-g { font-size: 28px; font-weight: 600; color: #111; letter-spacing: -0.04em; }
+  .wordmark-s { font-size: 11px; font-weight: 400; color: #aaa; letter-spacing: 0.05em; }
+  h1 { font-size: 30px; font-weight: 500; color: #111; letter-spacing: -0.04em; margin-bottom: 8px; }
+  .greeting { font-size: 14px; color: #999; font-weight: 300; font-style: italic; margin-bottom: 44px; }
+  .field { margin-bottom: 16px; }
+  label { display: block; font-size: 12px; font-weight: 500; color: #555; margin-bottom: 6px; }
+  input { width: 100%; border: 1.5px solid #e8e8e8; border-radius: 10px; padding: 13px 16px; font-size: 14px; font-family: inherit; color: #111; outline: none; background: #fff; transition: border-color 0.2s, box-shadow 0.2s; }
+  input::placeholder { color: #ccc; }
+  input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+  .row { display: flex; justify-content: flex-end; margin-bottom: 24px; }
+  .link { font-size: 12px; color: #6366f1; text-decoration: none; }
+  button { width: 100%; padding: 14px; background: #111; border: none; border-radius: 10px; color: #fff; font-size: 14px; font-family: inherit; font-weight: 500; cursor: pointer; transition: background 0.2s, transform 0.1s; }
+  button:hover { background: #333; transform: translateY(-1px); }
+  .divider { display: flex; align-items: center; gap: 12px; margin: 24px 0; }
+  .divider hr { flex: 1; border: none; border-top: 1px solid #eee; }
+  .divider span { font-size: 12px; color: #ccc; }
+  .signup { text-align: center; font-size: 13px; color: #999; }
+  .signup a { color: #6366f1; text-decoration: none; font-weight: 500; }
+  .right { width: 420px; background: #111; display: flex; flex-direction: column; justify-content: flex-end; padding: 60px; }
+  .quote { font-size: 18px; font-weight: 300; color: rgba(255,255,255,0.7); line-height: 1.6; font-style: italic; margin-bottom: 16px; }
+  .quote-attr { font-size: 12px; color: rgba(255,255,255,0.25); letter-spacing: 0.08em; }
+  .tag { position: fixed; bottom: 24px; right: 24px; font-size: 10px; color: rgba(255,255,255,0.2); letter-spacing: 0.1em; text-transform: uppercase; z-index: 10; }
+  @media (max-width: 768px) { .right { display: none; } }
+</style>
+</head>
+<body>
+<div class="left">
+  <div class="ambient a1"></div>
+  <div class="ambient a2"></div>
+  <div class="ambient a3"></div>
+  <div class="left-inner">
+    <div class="wordmark"><span class="wordmark-g">GOB</span><span class="wordmark-s">System</span></div>
+    <h1>Good to see you.</h1>
+    <p class="greeting">Sign in to your workspace</p>
+    <div class="field"><label>Email address</label><input type="email" placeholder="you@domain.com"></div>
+    <div class="field"><label>Password</label><input type="password" placeholder="••••••••"></div>
+    <div class="row"><a href="#" class="link">Forgot password?</a></div>
+    <button>Sign in</button>
+    <div class="divider"><hr><span>or</span><hr></div>
+    <div class="signup">No account? <a href="#">Get access</a></div>
+  </div>
+</div>
+<div class="right">
+  <p class="quote">&ldquo;The system is the solution. The solution is the system.&rdquo;</p>
+  <p class="quote-attr">GOB &mdash; v0.2.0</p>
+</div>
+<div class="tag">Concept 05 — Ambient</div>
+</body>
+</html>

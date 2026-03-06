@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOB — Gradient Observation Bridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@300;400;500&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- Noise texture overlay -->
+<div class="noise"></div>
+<!-- Vignette -->
+<div class="vignette"></div>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <span class="wordmark">GOB</span>
+    <span class="instance-name" id="instance-name">Gradient Observation Bridge</span>
+  </div>
+  <div class="header-center">
+    <span class="mood-badge" id="mood-badge">—</span>
+    <span class="char-badge" id="char-badge" style="display:none"></span>
+  </div>
+  <div class="header-right">
+    <span class="rec" id="rec-dot"></span>
+    <span class="rec-label">LIVE</span>
+    <span class="header-time" id="header-time"></span>
+  </div>
+</header>
+
+<!-- Main layout -->
+<div class="layout">
+
+  <!-- Left sidebar -->
+  <aside class="sidebar">
+    <div class="panel ghost-panel">
+      <div class="panel-label">CURRENT GHOST</div>
+      <div class="ghost-mood" id="ghost-mood">—</div>
+      <div class="ghost-char" id="ghost-char"></div>
+      <div class="ghost-traits" id="ghost-traits"></div>
+      <div class="divider"></div>
+      <div class="panel-label">NEXT ROTATION</div>
+      <div class="countdown" id="countdown">—</div>
+    </div>
+    <div class="panel status-panel">
+      <div class="panel-label">SYSTEM</div>
+      <div class="stat-row"><span class="stat-k">STATUS</span><span class="stat-v green" id="sys-status">ONLINE</span></div>
+      <div class="stat-row"><span class="stat-k">INSTANCE</span><span class="stat-v" id="sys-instance-short">G.O.B</span></div>
+      <div class="stat-row"><span class="stat-k">PORT</span><span class="stat-v">8383</span></div>
+      <div class="stat-row"><span class="stat-k">DASHBOARD</span><span class="stat-v">7842</span></div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+    <div class="tabs">
+      <button class="tab active" data-tab="chronicle">CHRONICLE</button>
+      <button class="tab" data-tab="graveyard">GRAVEYARD</button>
+      <button class="tab" data-tab="roster">ROSTER</button>
+      <button class="tab" data-tab="chat">CHAT</button>
+    </div>
+
+    <!-- Chronicle -->
+    <div class="tab-content active" id="tab-chronicle">
+      <div class="chronicle-feed" id="chronicle-feed"></div>
+    </div>
+
+    <!-- Graveyard -->
+    <div class="tab-content" id="tab-graveyard">
+      <div class="lineage-content" id="lineage-content">
+        <div class="loading">Loading lineage...</div>
+      </div>
+    </div>
+
+    <!-- Roster -->
+    <div class="tab-content" id="tab-roster">
+      <div class="roster-grid" id="roster-content">
+        <div class="loading">Loading roster...</div>
+      </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="tab-content" id="tab-chat">
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-row">
+        <span class="ps1">GOB://</span>
+        <input type="text" id="chat-input" placeholder="send a message..." autocomplete="off">
+        <button id="chat-send">SEND</button>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<!-- Bottom metrics bar -->
+<div class="metbar">
+  <div class="met"><span class="met-k">MOOD</span> <span class="met-v" id="met-mood">—</span></div>
+  <div class="met"><span class="met-k">CHARACTER</span> <span class="met-v" id="met-char">none</span></div>
+  <div class="met"><span class="met-k">CHRONICLE</span> <span class="met-v" id="met-lines">—</span> entries</div>
+  <div class="met"><span class="met-k">UPDATED</span> <span class="met-v" id="met-updated">—</span></div>
+  <div class="met met-right"><span class="met-v dim">nothing-platform v0.1 · gob dashboard</span></div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

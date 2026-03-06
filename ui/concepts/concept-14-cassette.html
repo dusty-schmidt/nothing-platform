@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOB — Concept 14: Cassette</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:'JetBrains Mono',monospace;overflow:hidden;
+  background:linear-gradient(to bottom,#080400 0%,#0f0800 40%,#120a02 70%,#080400 100%);}
+body{display:flex;align-items:center;justify-content:center;position:relative;}
+
+/* warm atmospheric glow */
+.atmos{position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 40% at 50% 55%,rgba(120,60,0,0.08) 0%,transparent 100%);}
+
+/* VHS distortion lines */
+.vhs{position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden;}
+.vline{position:absolute;left:0;right:0;height:1px;background:rgba(200,140,0,0.04);}
+
+/* scanlines */
+body::after{content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.1) 2px,rgba(0,0,0,0.1) 4px);
+  pointer-events:none;z-index:100;}
+
+/* vignette */
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 100% 100% at 50% 50%,transparent 45%,rgba(0,0,0,0.65) 100%);
+  pointer-events:none;z-index:98;}
+
+/* header strip */
+.hstrip{position:fixed;top:0;left:0;right:0;height:26px;
+  border-bottom:1px solid rgba(180,100,0,0.1);
+  background:rgba(8,4,0,0.95);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;z-index:50;}
+.hstrip-l{font-size:8px;color:rgba(180,100,0,0.3);letter-spacing:0.2em;}
+.hstrip-r{font-size:8px;color:rgba(180,100,0,0.2);letter-spacing:0.1em;}
+.hstrip .rec{display:inline-block;width:6px;height:6px;border-radius:50%;background:rgba(200,60,0,0.6);margin-right:5px;animation:recblink 1.5s step-end infinite;vertical-align:middle;}
+@keyframes recblink{0%,100%{opacity:0.6}50%{opacity:0}}
+
+/* side log feeds */
+.logfeed{position:fixed;top:32px;bottom:20px;width:220px;overflow:hidden;pointer-events:none;z-index:5;}
+.logfeed.l{left:0;mask-image:linear-gradient(to right,rgba(0,0,0,0.5),transparent);}
+.logfeed.r{right:0;mask-image:linear-gradient(to left,rgba(0,0,0,0.5),transparent);}
+.logfeed-inner{font-size:8px;color:rgba(180,100,0,0.18);line-height:2;padding:8px 12px;white-space:nowrap;overflow:hidden;}
+.logfeed.l .logfeed-inner{animation:scrollu 30s linear infinite;}
+.logfeed.r .logfeed-inner{animation:scrolld 24s linear infinite;}
+@keyframes scrollu{0%{transform:translateY(0)}100%{transform:translateY(-50%)}}
+@keyframes scrolld{0%{transform:translateY(-50%)}100%{transform:translateY(0)}}
+
+/* bottom metrics bar */
+.metbar{position:fixed;bottom:0;left:0;right:0;height:22px;
+  border-top:1px solid rgba(180,100,0,0.08);
+  background:rgba(8,4,0,0.9);
+  display:flex;align-items:center;padding:0 20px;gap:32px;z-index:50;}
+.metbar-item{font-size:8px;color:rgba(180,100,0,0.2);letter-spacing:0.1em;}
+.metbar-item .v{color:rgba(220,140,0,0.45);}
+
+/* CARD */
+.card{position:relative;z-index:20;width:360px;
+  border:1px solid rgba(180,100,0,0.15);
+  background:rgba(8,4,0,0.88);
+  padding:40px 36px;
+  box-shadow:0 0 60px rgba(100,40,0,0.1),inset 0 0 30px rgba(80,30,0,0.05);}
+.logo{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;
+  color:rgba(220,150,0,0.85);letter-spacing:0.35em;
+  text-shadow:0 0 30px rgba(200,120,0,0.2);margin-bottom:4px;}
+.logo-sub{font-size:8px;color:rgba(180,100,0,0.25);letter-spacing:0.2em;margin-bottom:28px;}
+.divline{height:1px;background:rgba(180,100,0,0.1);margin-bottom:24px;}
+h1{font-size:13px;color:rgba(220,180,100,0.7);letter-spacing:0.15em;margin-bottom:24px;font-weight:400;}
+.field{margin-bottom:14px;display:flex;align-items:center;}
+.ps1{color:rgba(180,100,0,0.3);margin-right:10px;font-size:10px;white-space:nowrap;}
+input{background:transparent;border:none;border-bottom:1px solid rgba(180,100,0,0.12);
+  outline:none;font-family:inherit;font-size:11px;color:rgba(220,160,40,0.9);
+  caret-color:rgba(220,150,0,0.8);flex:1;padding:6px 0;
+  transition:border-color 0.2s;}
+input::placeholder{color:rgba(180,100,0,0.1);}
+input:focus{border-color:rgba(180,100,0,0.4);}
+button{width:100%;margin-top:22px;padding:11px;
+  background:transparent;border:1px solid rgba(180,100,0,0.2);
+  color:rgba(220,150,0,0.75);font-family:'Orbitron',sans-serif;
+  font-size:9px;font-weight:500;letter-spacing:0.3em;
+  cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
+button:hover{background:rgba(180,100,0,0.06);border-color:rgba(220,150,0,0.45);}
+.status{margin-top:14px;font-size:8px;color:rgba(180,100,0,0.18);
+  display:flex;align-items:center;gap:6px;}
+.pls{width:4px;height:4px;border-radius:50%;background:rgba(220,150,0,0.5);
+  animation:pl 2.2s ease-in-out infinite;}
+@keyframes pl{0%,100%{opacity:1}50%{opacity:0.1}}
+
+.tag{position:fixed;bottom:30px;right:16px;font-size:8px;color:rgba(180,100,0,0.07);z-index:60;}
+</style>
+</head>
+<body>
+<div class="atmos"></div>
+<div class="vhs" id="vhs"></div>
+
+<div class="hstrip">
+  <div class="hstrip-l"><span class="rec"></span>GOB SYSTEM v0.2.0 &nbsp;//&nbsp; AUTH TERMINAL</div>
+  <div class="hstrip-r" id="ts">—</div>
+</div>
+
+<div class="logfeed l"><div class="logfeed-inner" id="lfl"></div></div>
+<div class="logfeed r"><div class="logfeed-inner" id="lfr"></div></div>
+
+<div class="metbar">
+  <div class="metbar-item">uptime <span class="v" id="upt">—</span></div>
+  <div class="metbar-item">cpu <span class="v" id="cpu">—</span></div>
+  <div class="metbar-item">mem <span class="v" id="mem">—</span></div>
+  <div class="metbar-item">agents <span class="v">3 / online</span></div>
+  <div class="metbar-item">net0 <span class="v">UP</span></div>
+  <div class="metbar-item">git <span class="v">develop</span></div>
+</div>
+
+<div class="card">
+  <div class="logo">GOB</div>
+  <div class="logo-sub">autonomous agent system</div>
+  <div class="divline"></div>
+  <h1>AUTHENTICATION REQUIRED</h1>
+  <div class="field"><span class="ps1">ID &gt;&gt;</span><input type="email" placeholder="operator@domain.com" autofocus></div>
+  <div class="field"><span class="ps1">KY &gt;&gt;</span><input type="password" placeholder=""></div>
+  <button>Authenticate</button>
+  <div class="status"><div class="pls"></div><span id="st">system nominal</span></div>
+</div>
+<div class="tag">concept-14-cassette</div>
+<script>
+// VHS lines
+const vhs=document.getElementById('vhs');
+for(let i=0;i<8;i++){const d=document.createElement('div');d.className='vline';d.style.top=Math.random()*100+'%';d.style.opacity=Math.random()*0.5;vhs.appendChild(d);}
+setInterval(()=>{Array.from(vhs.children).forEach(l=>{if(Math.random()>0.85){l.style.top=Math.random()*100+'%';l.style.opacity=Math.random()*0.06;}});},400);
+// Logs
+const logs=["[agent:0] heartbeat OK 11ms","[net0] rx:2.4KB tx:0.8KB","[agent:1] task complete","[scheduler] idle","[mem] 1.3GB/8.0GB","[cpu] 11%","[git] HEAD develop +3","[agent:2] spawned hacker","[backup] OK 03:00","[kernel] tick 0x47004200","[watchdog] all UP","[agent:0] claude 2.1s","[log] rotated 847 entries","[docker] gob-dev :3001","[dns] resolved 1ms","[auth] 0 sessions active"];
+const mk=n=>{let s='';for(let i=0;i<n;i++)s+=logs[i%logs.length]+'
+';return s+s;};
+document.getElementById('lfl').textContent=mk(35);
+document.getElementById('lfr').textContent=mk(30);
+// Metrics
+let start=Date.now()-(2*86400+18*3600+33*60)*1000;
+function tick(){const e=Date.now()-start,d=Math.floor(e/86400000),h=Math.floor((e%86400000)/3600000),m=Math.floor((e%3600000)/60000);document.getElementById('upt').textContent=d+'d '+String(h).padStart(2,'0')+'h '+String(m).padStart(2,'0')+'m';document.getElementById('cpu').textContent=Math.floor(8+Math.random()*14)+' %';document.getElementById('mem').textContent=(1.1+Math.sin(Date.now()/25000)*0.3).toFixed(2)+' GB';document.getElementById('ts').textContent=new Date().toISOString().replace('T',' ').slice(0,19);}
+tick();setInterval(tick,3000);
+const st=['system nominal','agents online','net0 up','scheduler idle'];let si=0;
+setInterval(()=>{si=(si+1)%st.length;document.getElementById('st').textContent=st[si];},4500);
+</script>
+</body>
+</html>

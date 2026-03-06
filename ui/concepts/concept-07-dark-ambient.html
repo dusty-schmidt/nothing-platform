@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOB — Concept 07: Dark Ambient</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #080808; font-family: 'Inter', sans-serif; overflow: hidden; }
+body { display: flex; align-items: center; justify-content: center; }
+
+/* Background log columns */
+.log-col { position: fixed; top: 0; bottom: 0; width: 200px; overflow: hidden; pointer-events: none; }
+.log-col.l1 { left: 0; }
+.log-col.l2 { left: 210px; }
+.log-col.r1 { right: 0; }
+.log-col.r2 { right: 210px; }
+.log-col-inner { font-family: 'JetBrains Mono', monospace; font-size: 9px; line-height: 2; padding: 8px 12px;
+  white-space: nowrap; overflow: hidden; }
+.log-col.l1 .log-col-inner { color: rgba(255,255,255,0.04); animation: scrolld 22s linear infinite; }
+.log-col.l2 .log-col-inner { color: rgba(255,255,255,0.025); animation: scrolld 35s linear infinite; animation-delay:-10s; }
+.log-col.r1 .log-col-inner { color: rgba(255,255,255,0.04); animation: scrollu 28s linear infinite; }
+.log-col.r2 .log-col-inner { color: rgba(255,255,255,0.025); animation: scrollu 18s linear infinite; animation-delay:-5s; }
+@keyframes scrolld { 0%{transform:translateY(-50%)} 100%{transform:translateY(0)} }
+@keyframes scrollu { 0%{transform:translateY(0)} 100%{transform:translateY(-50%)} }
+
+/* noise texture */
+body::before { content:''; position:fixed; inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.4; pointer-events: none; z-index: 1; }
+
+/* Live mini chart */
+.chart-wrap { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 2; opacity: 0.15; }
+canvas#chart { display: block; }
+
+/* Corner indicators */
+.corner { position: fixed; font-family: 'JetBrains Mono', monospace; font-size: 9px; z-index: 5; }
+.corner.tl { top: 20px; left: 20px; color: rgba(255,255,255,0.2); line-height: 2; }
+.corner.tr { top: 20px; right: 20px; color: rgba(255,255,255,0.2); line-height: 2; text-align: right; }
+.corner.bl { bottom: 20px; left: 20px; color: rgba(255,255,255,0.1); }
+.corner.br { bottom: 20px; right: 20px; color: rgba(255,255,255,0.1); }
+.corner .bright { color: rgba(255,255,255,0.5); }
+
+/* Card */
+.card { position: relative; z-index: 10; background: #fff; border-radius: 12px;
+  padding: 44px 40px; width: 360px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 20px 80px rgba(0,0,0,0.8); }
+.wordmark { font-size: 11px; font-weight: 600; letter-spacing: 0.15em;
+  text-transform: uppercase; color: #aaa; margin-bottom: 36px; }
+.wordmark strong { color: #111; }
+h1 { font-size: 26px; font-weight: 500; color: #111; letter-spacing: -0.04em; margin-bottom: 6px; }
+.sub { font-size: 13px; color: #bbb; font-weight: 300; margin-bottom: 36px; }
+.field { margin-bottom: 16px; }
+label { display: block; font-size: 11px; font-weight: 500; color: #888; margin-bottom: 6px; }
+input { width: 100%; border: 1.5px solid #eee; border-radius: 8px; padding: 12px 14px;
+  font-size: 14px; font-family: inherit; color: #111; outline: none;
+  transition: border-color 0.2s; }
+input::placeholder { color: #ccc; }
+input:focus { border-color: #111; }
+button { width: 100%; margin-top: 20px; padding: 13px; background: #111; border: none;
+  border-radius: 8px; color: #fff; font-size: 14px; font-family: inherit; font-weight: 500;
+  cursor: pointer; transition: background 0.2s; }
+button:hover { background: #333; }
+.sys-row { display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 18px; font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #ccc; }
+.dot-g { width:5px;height:5px;border-radius:50%;background:#22c55e;animation:pulse 2s ease-in-out infinite; }
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.2}}
+
+.tag { position: fixed; bottom: 16px; right: 16px; font-size: 9px; color: rgba(255,255,255,0.08); z-index: 20; }
+</style>
+</head>
+<body>
+<div class="log-col l1"><div class="log-col-inner" id="lc1"></div></div>
+<div class="log-col l2"><div class="log-col-inner" id="lc2"></div></div>
+<div class="log-col r1"><div class="log-col-inner" id="rc1"></div></div>
+<div class="log-col r2"><div class="log-col-inner" id="rc2"></div></div>
+
+<div class="corner tl">
+  <div>GOB SYS v0.2.0</div>
+  <div>uptime <span class="bright" id="upt2">—</span></div>
+  <div>agents <span class="bright">3 / online</span></div>
+</div>
+<div class="corner tr">
+  <div>cpu <span class="bright" id="cpu2">—</span></div>
+  <div>mem <span class="bright" id="mem2">—</span></div>
+  <div>net0 <span class="bright">UP</span></div>
+</div>
+<div class="corner bl">// unauthorized access prohibited</div>
+<div class="corner br" id="ts">—</div>
+
+<div class="chart-wrap"><canvas id="chart" width="400" height="40"></canvas></div>
+
+<div class="card">
+  <div class="wordmark"><strong>GOB</strong> &nbsp;/&nbsp; System Access</div>
+  <h1>Sign in</h1>
+  <p class="sub">Authorized operators only</p>
+  <div class="field"><label>Email</label><input type="email" placeholder="operator@domain.com" autofocus></div>
+  <div class="field"><label>Password</label><input type="password" placeholder="••••••••"></div>
+  <button>Continue</button>
+  <div class="sys-row"><div class="dot-g"></div><span id="st2">system nominal</span></div>
+</div>
+
+<div class="tag">concept-07-dark-ambient</div>
+
+<script>
+const logs = [
+  "[agent:0] heartbeat OK 11ms","[scheduler] idle — no pending",
+  "[net0] rx:2.4KB tx:0.8KB","[agent:1] task complete",
+  "[mem] 1.3GB/8.0GB","[cpu] load 11%","[git] HEAD develop +3",
+  "[agent:2] spawned profile:hacker","[backup] snapshot OK 03:00",
+  "[auth] 0 sessions active","[kernel] tick 0x4700420031a2f",
+  "[watchdog] all services UP","[agent:0] claude response 2.1s",
+  "[log] rotated 847 entries","[docker] gob-dev :3001 UP",
+  "[agent:1] memory_save OK","[dns] resolved 1ms",
+  "[sys] temp 41C","[agent:0] tool:code_exec 1.3s",
+  "[cron] next 00:04:12"
+];
+function makeLogs(n){ let s=''; for(let i=0;i<n;i++) s+=logs[i%logs.length]+'\n'; return s+s; }
+['lc1','lc2','rc1','rc2'].forEach((id,i)=>{ document.getElementById(id).textContent=makeLogs(40+(i*7)); });
+
+let start=Date.now()-(2*86400+18*3600+33*60)*1000;
+function tick(){
+  const e=Date.now()-start,d=Math.floor(e/86400000),h=Math.floor((e%86400000)/3600000),m=Math.floor((e%3600000)/60000);
+  document.getElementById('upt2').textContent=d+'d '+String(h).padStart(2,'0')+'h '+String(m).padStart(2,'0')+'m';
+  document.getElementById('cpu2').textContent=Math.floor(8+Math.random()*14)+' %';
+  document.getElementById('mem2').textContent=(1.1+Math.sin(Date.now()/25000)*0.3).toFixed(2)+' GB';
+  document.getElementById('ts').textContent=new Date().toISOString().replace('T',' ').slice(0,19);
+}
+tick(); setInterval(tick,3000);
+const st=['system nominal','agents online','net0 up','scheduler idle'];
+let si=0; setInterval(()=>{ si=(si+1)%st.length; document.getElementById('st2').textContent=st[si]; },4000);
+
+// mini chart
+const cv=document.getElementById('chart'),ctx=cv.getContext('2d');
+let pts=[20,22,18,25,20,15,22,28,20,18,24,20,16,22,25,18,20,22,15,20,18,24,20,22];
+function drawChart(){
+  ctx.clearRect(0,0,400,40);
+  ctx.strokeStyle='rgba(255,255,255,0.8)';
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  pts.forEach((v,i)=>{ const x=(i/(pts.length-1))*400,y=40-(v/30)*40; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+  ctx.stroke();
+}
+drawChart();
+setInterval(()=>{ pts.shift(); pts.push(10+Math.random()*20); drawChart(); },1200);
+</script>
+</body>
+</html>

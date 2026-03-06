@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOB — Concept 06: Amber Wave</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #0c0900; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
+body { display: flex; align-items: center; justify-content: center; position: relative; }
+
+/* GRID FLOOR */
+.grid-floor { position: fixed; bottom: 0; left: 0; right: 0; height: 45vh;
+  background:
+    repeating-linear-gradient(90deg, rgba(200,150,40,0.08) 0px, transparent 1px, transparent 80px),
+    repeating-linear-gradient(0deg, rgba(200,150,40,0.08) 0px, transparent 1px, transparent 80px);
+  transform: perspective(500px) rotateX(50deg);
+  transform-origin: bottom center;
+  mask-image: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+}
+
+/* HORIZON LINE */
+.horizon { position: fixed; bottom: 44vh; left: 0; right: 0; height: 1px;
+  background: linear-gradient(to right, transparent, rgba(200,150,40,0.4), transparent); }
+
+/* SCANLINES */
+body::after { content: ''; position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
+  pointer-events: none; z-index: 50; }
+
+/* LOG STRIP - top */
+.log-strip { position: fixed; top: 0; left: 0; right: 0; height: 28px;
+  border-bottom: 1px solid rgba(200,150,40,0.15);
+  background: rgba(12,9,0,0.8); display: flex; align-items: center;
+  overflow: hidden; }
+.log-ticker { font-size: 9px; color: rgba(200,150,40,0.4); white-space: nowrap;
+  animation: ticker 20s linear infinite; padding-left: 100%; }
+@keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-100%)} }
+
+/* SIDE METRICS */
+.side-l, .side-r { position: fixed; top: 40px; font-size: 9px; color: rgba(200,150,40,0.25); line-height: 2.2; }
+.side-l { left: 20px; }
+.side-r { right: 20px; text-align: right; }
+.side-l .hi, .side-r .hi { color: rgba(200,150,40,0.6); }
+
+/* CARD */
+.card { position: relative; z-index: 10; width: 360px;
+  border: 1px solid rgba(200,150,40,0.2);
+  background: rgba(12,9,0,0.85);
+  padding: 40px 36px;
+  box-shadow: 0 0 60px rgba(200,150,40,0.05), inset 0 0 40px rgba(200,150,40,0.02); }
+.logo { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 700;
+  color: rgba(200,150,40,0.9); letter-spacing: 0.3em; margin-bottom: 4px; }
+.logo-sub { font-size: 9px; color: rgba(200,150,40,0.35); letter-spacing: 0.2em;
+  margin-bottom: 36px; text-transform: uppercase; }
+.field { margin-bottom: 16px; }
+label { display: block; font-size: 9px; color: rgba(200,150,40,0.4);
+  letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; }
+input { width: 100%; background: rgba(200,150,40,0.04);
+  border: none; border-bottom: 1px solid rgba(200,150,40,0.2);
+  padding: 10px 0; font-family: inherit; font-size: 13px;
+  color: rgba(200,150,40,0.9); outline: none;
+  transition: border-color 0.2s; }
+input::placeholder { color: rgba(200,150,40,0.15); }
+input:focus { border-color: rgba(200,150,40,0.6); }
+button { width: 100%; margin-top: 28px; padding: 12px;
+  background: transparent; border: 1px solid rgba(200,150,40,0.35);
+  color: rgba(200,150,40,0.9); font-family: 'Orbitron', sans-serif;
+  font-size: 10px; font-weight: 500; letter-spacing: 0.3em;
+  cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
+button:hover { background: rgba(200,150,40,0.08); border-color: rgba(200,150,40,0.7); }
+.status { margin-top: 18px; font-size: 9px; color: rgba(200,150,40,0.2); text-align: center; letter-spacing: 0.1em; }
+.pulse { display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(200,150,40,0.6); margin-right: 6px;
+  animation: pulse 2s ease-in-out infinite; vertical-align: middle; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.tag { position: fixed; bottom: 16px; right: 16px; font-size: 9px;
+  color: rgba(200,150,40,0.15); letter-spacing: 0.1em; z-index: 60; }
+</style>
+</head>
+<body>
+<div class="log-strip">
+  <div class="log-ticker" id="ticker"></div>
+</div>
+<div class="grid-floor"></div>
+<div class="horizon"></div>
+
+<div class="side-l">
+  <div>sys.uptime</div>
+  <div class="hi" id="upt">—</div>
+  <div style="margin-top:12px">cpu.load</div>
+  <div class="hi" id="cpu">—</div>
+  <div style="margin-top:12px">mem.used</div>
+  <div class="hi" id="mem">—</div>
+</div>
+
+<div class="side-r">
+  <div>agents.online</div>
+  <div class="hi">3</div>
+  <div style="margin-top:12px">net0.status</div>
+  <div class="hi">UP</div>
+  <div style="margin-top:12px">tasks.pending</div>
+  <div class="hi" id="tasks">0</div>
+</div>
+
+<div class="card">
+  <div class="logo">GOB</div>
+  <div class="logo-sub">System v0.2.0 // auth required</div>
+  <div class="field"><label>Identity</label><input type="email" placeholder="operator@domain.com" autofocus></div>
+  <div class="field"><label>Access Key</label><input type="password" placeholder=""></div>
+  <button>Authenticate</button>
+  <div class="status"><span class="pulse"></span><span id="st">system nominal</span></div>
+</div>
+
+<div class="tag">concept-06-amber-wave</div>
+
+<script>
+const logs = [
+  "agent:0 heartbeat 11ms","scheduler idle","net0 rx:2.4KB tx:0.8KB",
+  "agent:1 task complete","mem 1.3GB/8GB","cpu 11%","git HEAD develop",
+  "agent:2 spawned hacker","backup OK 03:00","dns resolved 1ms",
+  "kernel tick 0x4700420031a2f","watchdog all up","agent:0 claude 2.1s",
+  "log rotated 847 entries","docker gob-dev :3001"
+];
+document.getElementById('ticker').textContent = logs.join('  //  ') + '  //  ' + logs.join('  //  ');
+
+let start = Date.now() - (2*86400+18*3600+33*60)*1000;
+function tick() {
+  const e = Date.now()-start, d=Math.floor(e/86400000), h=Math.floor((e%86400000)/3600000), m=Math.floor((e%3600000)/60000);
+  document.getElementById('upt').textContent = d+'d '+String(h).padStart(2,'0')+'h '+String(m).padStart(2,'0')+'m';
+  document.getElementById('cpu').textContent = Math.floor(8+Math.random()*14)+' %';
+  document.getElementById('mem').textContent = (1.1+Math.sin(Date.now()/25000)*0.3).toFixed(2)+' GB';
+  document.getElementById('tasks').textContent = Math.random()>0.8?Math.floor(Math.random()*3):0;
+}
+tick(); setInterval(tick,3000);
+const st=['system nominal','agents online','net0 up','scheduler idle','backup current'];
+let si=0; setInterval(()=>{ si=(si+1)%st.length; document.getElementById('st').textContent=st[si]; },4500);
+</script>
+</body>
+</html>
