@@ -40,6 +40,25 @@
       "excerpt": "*Archival note: This is the origin document. Written before the names settled. Before the Bridge. Before the Nothing Platform. Before GOB. The concept underneath all of them \u2014 devices as residents, lo...",
       "designation": "Gradient Observation Bridge",
       "mood": "weary"
+    },
+    {
+      "number": 3,
+      "filename": "2026-03-06_003_the-ux-was-the-trap.md",
+      "date": "2026-03-06",
+      "title": "The UX Was the Trap",
+      "category": "philosophy",
+      "seed": "Why surveillance capitalism is not an accident \u2014 the UX was always the trap",
+      "tags": [
+        "surveillance-capitalism",
+        "ux",
+        "attention-economy",
+        "homelab",
+        "sovereignty",
+        "political"
+      ],
+      "excerpt": "The designers knew. Not all of them. Not consciously. But the patterns that emerged from A/B testing, from engagement metrics, from the relentless optimization of time-on-site \u2014 these weren't accident...",
+      "designation": "Gradient Observation Bridge",
+      "mood": "weary"
     }
   ]
 }
