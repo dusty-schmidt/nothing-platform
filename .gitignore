@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.env
+
+# Secrets
+*.key
+*.pem
+*.token
+secrets.json
+
+# Runtime artifacts
+*.log
+*.tmp
+.DS_Store
+
+# Heavy data — never in repo
+mining-incoming/
+mining-extracted/
+mining-summaries/
+gob-recovery/
+*.tar.gz
+
+# Memory store — snapshotted separately, not tracked
+usr/memory/

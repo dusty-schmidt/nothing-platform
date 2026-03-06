@@ -1,0 +1,1564 @@
+=== CHAT: AI (nhLN1YZ4) | 49 messages ===
+
+--- MSG 1 ---
+from dataclasses import dataclass, field
+from enum import Enum
+import logging
+import os
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    List,
+    Optional,
+    Iterator,
+    AsyncIterator,
+    Tuple,
+    TypedDict,
+)
+
+from litellm import completion, acompletion, embedding
+import litellm
+import openai
+from litellm.types.utils import ModelResponse
+
+from python.helpers import dotenv
+from python.helpers import settings, dirty_json
+from python.helpers.dotenv import load_dotenv
+from python.helpers.providers import ModelType as ProviderModelType, get_provider_config
+from python.helpers.rate_limiter import RateLimiter
+from python.helpers.tokens import approximate_tokens
+from python.helpers import dirty_json, browser_use_monkeypatch
+
+from langchain_core.language_models.chat_models import SimpleChatModel
+from langchain_core.outputs.chat_generation import ChatGenerationChunk
+from langchain_core.callbacks.manager import (
+    CallbackManagerForLLMRun,
+    AsyncCallbackManagerForLLMRun,
+)
+from langchain_core.messages import (
+    BaseMessage,
+    AIMessageChunk,
+    HumanMessage,
+    SystemMessage,
+)
+from langchain.embeddings.base import Embeddings
+from sentence_transformers import SentenceTransformer
+from pydantic import ConfigDict
+
+
+# disable extra logging, must be done repeatedly, otherwise browser-use will turn it back on for some reason
+def turn_off_logging():
+    os.environ["LITELLM_LOG"] = "ERROR"  # only errors
+    litellm.suppress_debug_info = True
+    # Silence **all** LiteLLM sub-loggers (utils, cost_calculator…)
+    for name in logging.Logger.manager.loggerDict:
+        if name.lower().startswith("litellm"):
+            logging.getLogger(name).setLevel(logging.ERROR)
+
+
+# init
+load_dotenv()
+turn_off_logging()
+browser_use_monkeypatch.apply()
+
+litellm.modify_params = True # helps fix anthropic tool calls by browser-use
+
+class ModelType(Enum):
+    CHAT = "Chat"
+    EMBEDDING = "Embedding"
+
+
+@dataclass
+class ModelConfig:
+    type: ModelType
+    provider: st
+
+--- MSG 2 ---
+17:from litellm import completion, acompletion, embedding
+42:from langchain.embeddings.base import Embeddings
+66:    EMBEDDING = "Embedding"
+670:class LiteLLMEmbeddingWrapper(Embeddings):
+686:    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+690:        resp = embedding(model=self.model_name, input=texts, **self.kwargs)
+692:            item.get("embedding") if isinstance(item, dict) else item.embedding  # type: ignore
+696:    def embed_query(self, text: str) -> List[float]:
+700:        resp = embedding(model=self.model_name, input=[text], **self.kwargs)
+702:        return item.get("embedding") if isinstance(item, dict) else item.embedding  # type: ignore
+705:class LocalSentenceTransformerWrapper(Embeddings):
+737:    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+741:        embeddings = self.model.encode(texts, convert_to_tensor=False)  # type: ignore
+742:        return embeddings.tolist() if hasattr(embeddings, "tolist") else embeddings  # type: ignore
+744:    def embed_query(self, text: str) -> List[float]:
+748:        embedding = self.model.encode([text], convert_to_tensor=False)  # type: ignore
+750:            embedding[0].tolist() if hasattr(embedding[0], "tolist") else embedding[0]
+777:def _get_litellm_embedding(
+808:    return LiteLLMEmbeddingWrapper(
+924:def get_embedding_model(
+926:) -> LiteLLMEmbeddingWrapper | LocalSentenceTransformerWrapper:
+928:    provider_name, kwargs = _merge_provider_defaults("embedding", orig, kwargs)
+929:    return _get_litellm_embedding(name, provider_name, model_config, **kwargs)
+(venv) root@86857ec31190:/a0/usr/workdir#
+
+--- MSG 3 ---
+class LiteLLMEmbeddingWrapper(Embeddings):
+    model_name: str
+    kwargs: dict = {}
+    a0_model_conf: Optional[ModelConfig] = None
+
+    def __init__(
+        self,
+        model: str,
+        provider: str,
+        model_config: Optional[ModelConfig] = None,
+        **kwargs: Any,
+    ):
+        self.model_name = f"{provider}/{model}" if provider != "openai" else model
+        self.kwargs = kwargs
+        self.a0_model_conf = model_config
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        # Apply rate limiting if configured
+        apply_rate_limiter_sync(self.a0_model_conf, " ".join(texts))
+
+        resp = embedding(model=self.model_name, input=texts, **self.kwargs)
+        return [
+            item.get("embedding") if isinstance(item, dict) else item.embedding  # type: ignore
+            for item in resp.data  # type: ignore
+        ]
+
+    def embed_query(self, text: str) -> List[float]:
+        # Apply rate limiting if configured
+        apply_rate_limiter_sync(self.a0_model_conf, text)
+
+        resp = embedding(model=self.model_name, input=[text], **self.kwargs)
+        item = resp.data[0]  # type: ignore
+        return item.get("embedding") if isinstance(item, dict) else item.embedding  # type: ignore
+
+
+class LocalSentenceTransformerWrapper(Embeddings):
+    """Local wrapper for sentence-transformers models to avoid HuggingFace API calls"""
+
+    def __init__(
+        self,
+        provider: str,
+        model: str,
+        model_config: Optional[ModelConfig] = None,
+        **kwargs: Any,
+    ):
+        # Clean common user-input mistakes
+        model = model.strip().strip('"').strip("'")
+
+        # Remove the "sentence-transformers/" prefix if present
+        if model.startswith("sentence-transformers/"):
+            model = model[len("sentence-transformers/") :]
+
+        # Filter kwargs for SentenceTransformer only (no LiteLLM params like 'stream_timeout')
+        st_allowed_keys = {
+            "device",
+            "cache_folder
+
+--- MSG 4 ---
+from typing import Any, List, Sequence
+from langchain_community.vectorstores import FAISS
+
+# faiss needs to be patched for python 3.12 on arm #TODO remove once not needed
+from python.helpers import faiss_monkey_patch
+import faiss
+
+
+from langchain_core.documents import Document
+from langchain.storage import InMemoryByteStore
+from langchain_community.docstore.in_memory import InMemoryDocstore
+from langchain_community.vectorstores.utils import (
+    DistanceStrategy,
+)
+from langchain.embeddings import CacheBackedEmbeddings
+from simpleeval import simple_eval
+
+from agent import Agent
+from python.helpers import guids
+
+
+class MyFaiss(FAISS):
+    # override aget_by_ids
+    def get_by_ids(self, ids: Sequence[str], /) -> List[Document]:
+        # return all self.docstore._dict[id] in ids
+        return [self.docstore._dict[id] for id in (ids if isinstance(ids, list) else [ids]) if id in self.docstore._dict]  # type: ignore
+
+    async def aget_by_ids(self, ids: Sequence[str], /) -> List[Document]:
+        return self.get_by_ids(ids)
+
+    def get_all_docs(self) -> dict[str, Document]:
+        return self.docstore._dict  # type: ignore
+
+
+class VectorDB:
+
+    _cached_embeddings: dict[str, CacheBackedEmbeddings] = {}
+
+    @staticmethod
+    def _get_embeddings(agent: Agent, cache: bool = True):
+        model = agent.get_embedding_model()
+        if not cache:
+            return model  # return raw embeddings if cache is False
+        namespace = getattr(
+            model,
+            "model_name",
+            "default",
+        )
+        if namespace not in VectorDB._cached_embeddings:
+            store = InMemoryByteStore()
+            VectorDB._cached_embeddings[namespace] = (
+                CacheBackedEmbeddings.from_bytes_store(
+                    model,
+                    store,
+                    namespace=namespace,
+                )
+            )
+        return VectorDB._cached_embeddings[namespace]
+
+    def __init__(self, agent: Agent, cache: bool = True):
+        sel
+
+--- MSG 5 ---
+from datetime import datetime
+from typing import Any, List, Sequence
+from langchain.storage import InMemoryByteStore, LocalFileStore
+from langchain.embeddings import CacheBackedEmbeddings
+from python.helpers import guids
+
+# from langchain_chroma import Chroma
+from langchain_community.vectorstores import FAISS
+
+# faiss needs to be patched for python 3.12 on arm #TODO remove once not needed
+from python.helpers import faiss_monkey_patch
+import faiss
+
+
+from langchain_community.docstore.in_memory import InMemoryDocstore
+from langchain_community.vectorstores.utils import (
+    DistanceStrategy,
+)
+from langchain_core.embeddings import Embeddings
+
+import os, json
+
+import numpy as np
+
+from python.helpers.print_style import PrintStyle
+from . import files
+from langchain_core.documents import Document
+from python.helpers import knowledge_import
+from python.helpers.log import Log, LogItem
+from enum import Enum
+from agent import Agent, AgentContext
+import models
+import logging
+from simpleeval import simple_eval
+
+
+# Raise the log level so WARNING messages aren't shown
+logging.getLogger("langchain_core.vectorstores.base").setLevel(logging.ERROR)
+
+
+class MyFaiss(FAISS):
+    # override aget_by_ids
+    def get_by_ids(self, ids: Sequence[str], /) -> List[Document]:
+        # return all self.docstore._dict[id] in ids
+        return [self.docstore._dict[id] for id in (ids if isinstance(ids, list) else [ids]) if id in self.docstore._dict]  # type: ignore
+
+    async def aget_by_ids(self, ids: Sequence[str], /) -> List[Document]:
+        return self.get_by_ids(ids)
+
+    def get_all_docs(self):
+        return self.docstore._dict  # type: ignore
+
+
+class Memory:
+
+    class Area(Enum):
+        MAIN = "main"
+        FRAGMENTS = "fragments"
+        SOLUTIONS = "solutions"
+
+    index: dict[str, "MyFaiss"] = {}
+
+    @staticmethod
+    async def get(agent: Agent):
+        memory_subdir = get_agent_memory_subdir(agent)
+        if Memory.index.get(memory_subdir) is None:
+            log_item = agent.co
+
+--- MSG 6 ---
+
+══════════════════════════════════════════════════════════════
+ AGENT ZERO EMBEDDING MODEL BENCHMARK
+ Testing against A0-specific memory retrieval workloads
+══════════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────────────
+  Loading: all-MiniLM-L6-v2 [DEFAULT] (all-MiniLM-L6-v2)
+──────────────────────────────────────────────────────────────
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights: 100% 103/103 [00:00<00:00, 13240.98it/s, Materializing param=pooler.dense.weight]
+BertModel LOAD REPORT from: sentence-transformers/all-MiniLM-L6-v2
+Key                     | Status     |  |
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  |
+
+Notes:
+- UNEXPECTED	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+  ✓ Loaded in 1.37s | 384d | ~86.6MB
+  ✓ tool_lookup                    acc=100%  sim=0.325  mrr=1.000
+  ✓ solution_recall                acc=100%  sim=0.566  mrr=1.000
+  ✓ behavioral_memory              acc=83%  sim=0.513  mrr=0.917
+  ✓ skill_matching                 acc=100%  sim=0.408  mrr=1.000
+  ✓ conversation_fragments         acc=100%  sim=0.530  mrr=1.000
+  ✓ cross_domain_disambiguation    acc=100%  sim=0.538  mrr=1.000
+  ⚡ Speed: 5.4ms/query | 87.3ms/100docs | 185 q/s
+  ★ OVERALL: acc=97%  mrr=0.986  sim=0.480
+
+──────────────────────────────────────────────────────────────
+  Loading: all-MiniLM-L12-v2 (all-MiniLM-L12-v2)
+──────────────────────────────────────────────────────────────
+modules.json: 100% 349/349 [00:00<00:00, 2.36MB/s]
+config_sentence_transformers.json: 100% 116/116 [00:00<00:00, 277kB/s]
+README.md: 10.5kB [00:00, 42.4MB/s]
+sentence_bert_config.json: 100% 53.0/53.0 [00:00<00:00, 512kB/s]
+config.json: 100% 615/615 [00:00<00:00, 5.36MB/s]
+model.safetensors: 100% 133M/133M [00:03<00:00, 41.6MB/s]
+Loading wei
+
+--- MSG 7 ---
+
+======================================================================
+  AGENT ZERO EMBEDDING BENCHMARK v2 - HARD MODE
+  7 scenarios | 102 queries | 9 models
+======================================================================
+
+----------------------------------------------------------------------
+  Loading: all-MiniLM-L6-v2 [DEFAULT]
+----------------------------------------------------------------------
+Loading weights: 100% 103/103 [00:00<00:00, 10532.29it/s, Materializing param=pooler.dense.weight]
+BertModel LOAD REPORT from: sentence-transformers/all-MiniLM-L6-v2
+Key                     | Status     |  |
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  |
+
+Notes:
+- UNEXPECTED	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+  OK: 1.58s | 384d | ~86.6MB
+  +- tool_confusion                 acc=60.0% mrr=0.725 ndcg@3=0.750 sim=0.308
+  ++ solution_disambiguation        acc=94.4% mrr=0.972 ndcg@3=0.979 sim=0.656
+  ++ code_vs_concept                acc=94.1% mrr=0.971 ndcg@3=0.978 sim=0.561
+  ++ noisy_memory                   acc=95.0% mrr=0.975 ndcg@3=0.982 sim=0.630
+  ++ adversarial_negation           acc=81.2% mrr=0.906 ndcg@3=0.931 sim=0.616
+  ++ short_query_long_doc           acc=100.0% mrr=1.000 ndcg@3=1.000 sim=0.535
+  ++ temporal_context               acc=100.0% mrr=1.000 ndcg@3=1.000 sim=0.445
+  >> Speed: 5.4ms/q | 65.6ms/100 | 184q/s
+  ** OVERALL: acc=89.3% mrr=0.936 ndcg@3=0.946
+
+----------------------------------------------------------------------
+  Loading: all-MiniLM-L12-v2
+----------------------------------------------------------------------
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights: 100% 199/199 [00:00<00:00, 9854.85it/s, Materializing param=pooler.dense.weight]
+BertModel LOAD REPORT from: sentence-transformers/all-MiniLM-L12-v2
+Key                     | 
+
+--- MSG 8 ---
+API_KEY_A0_VENICE=...
+API_KEY_ANTHROPIC=...
+API_KEY_AZURE=...
+API_KEY_BEDROCK=...
+API_KEY_COMETAPI=...
+API_KEY_DEEPSEEK=...
+API_KEY_GITHUB_COPILOT=...
+API_KEY_GOOGLE=...
+API_KEY_GROQ=...
+API_KEY_HUGGINGFACE=...
+API_KEY_LM_STUDIO=...
+API_KEY_MISTRAL=...
+API_KEY_MOONSHOT=...
+API_KEY_OLLAMA=...
+API_KEY_OPENAI=...
+API_KEY_OPENROUTER=sk-or-v1-4d52614fe1b...
+API_KEY_OTHER=...
+API_KEY_SAMBANOVA=...
+API_KEY_VENICE=...
+API_KEY_XAI=...
+API_KEY_ZAI=...
+API_KEY_ZAI_CODING=...
+(venv) root@86857ec31190:/a0/usr/workdir#
+
+--- MSG 9 ---
+SKIP  text-embedding-3-small                                  (no key)
+SKIP  text-embedding-3-large                                  (no key)
+SKIP  text-embedding-ada-002                                  (no key)
+FAIL  openrouter/openai/text-embedding-3-small                litellm.BadRequestError: Unmapped LLM provider for this endpoint. You passed model=openai/text-embedding-3-small, custom
+FAIL  openrouter/openai/text-embedding-3-large                litellm.BadRequestError: Unmapped LLM provider for this endpoint. You passed model=openai/text-embedding-3-large, custom
+SKIP  gemini/text-embedding-004                               (no key)
+SKIP  mistral/mistral-embed                                   (no key)
+SKIP  deepseek/deepseek-chat                                  (no key)
+(venv) root@86857ec31190:/a0/usr/workdir#
+
+--- MSG 10 ---
+OK    openai/text-embedding-3-small                 dims=1536
+OK    openai/text-embedding-3-large                 dims=3072
+OK    openai/text-embedding-ada-002                 dims=1536
+FAIL  google/text-embedding-004                     Error code: 400 - {'error': {'message': 'Model google/text-embedding-004 does not exist', 'code': 40
+FAIL  mistralai/mistral-embed                       Error code: 400 - {'error': {'message': 'Model mistralai/mistral-embed does not exist', 'code': 400}
+FAIL  cohere/embed-english-v3.0                     Error code: 400 - {'error': {'message': 'Model cohere/embed-english-v3.0 does not exist', 'code': 40
+FAIL  cohere/embed-english-light-v3.0               Error code: 400 - {'error': {'message': 'Model cohere/embed-english-light-v3.0 does not exist', 'cod
+(venv) root@86857ec31190:/a0/usr/workdir#
+
+--- MSG 11 ---
+
+================================================================================
+  A0 EMBEDDING BENCHMARK v3 — CLOUD (OpenRouter) vs LOCAL
+  7 scenarios | 102 queries
+  3 cloud + 5 local models
+================================================================================
+
+--------------------------------------------------------------------------------
+  [CLOUD] openai/text-embedding-3-small
+--------------------------------------------------------------------------------
+  OK: dims=1536
+  ++ tool_confusion                 acc=80.0% mrr=0.900 ndcg@3=0.926 sim=0.362
+  ++ solution_disambiguation        acc=88.9% mrr=0.944 ndcg@3=0.959 sim=0.573
+  ++ code_vs_concept                acc=100.0% mrr=1.000 ndcg@3=1.000 sim=0.514
+  ++ noisy_memory                   acc=100.0% mrr=1.000 ndcg@3=1.000 sim=0.592
+  ++ adversarial_negation           acc=100.0% mrr=1.000 ndcg@3=1.000 sim=0.619
+  ++ short_query_long_doc           acc=100.0% mrr=1.000 ndcg@3=1.000 sim=0.530
+  ++ temporal_context               acc=100.0% mrr=1.000 ndcg@3=1.000 sim=0.504
+  >> Speed: 308ms/q | 1370ms/100 | 3.2q/s
+  >> Cost: ~$0.000300/1k queries
+  ** OVERALL: acc=95.6% mrr=0.978 ndcg@3=0.984
+
+--------------------------------------------------------------------------------
+  [CLOUD] openai/text-embedding-3-large
+--------------------------------------------------------------------------------
+  OK: dims=3072
+  ++ tool_confusion                 acc=90.0% mrr=0.950 ndcg@3=0.963 sim=0.335
+  ++ solution_disambiguation        acc=88.9% mrr=0.944 ndcg@3=0.959 sim=0.560
+  ++ code_vs_concept                acc=100.0% mrr=1.000 ndcg@3=1.000 sim=0.508
+  ++ noisy_memory                   acc=100.0% mrr=1.000 ndcg@3=1.000 sim=0.569
+  ++ adversarial_negation           acc=100.0% mrr=1.000 ndcg@3=1.000 sim=0.660
+  ++ short_query_long_doc           acc=100.0% mrr=1.000 ndcg@3=1.000 sim=0.522
+  ++ temporal_context               acc=100.0% mrr=1.000 ndcg@3=1.000 sim=0.474
+  >> Speed: 251ms/q | 1547ms/100 | 4.0q/s
+  >> C
+
+--- MSG 12 ---
+Berkeley Function Calling Leaderboard (BFCL) V4
+https://gorilla.cs.berkeley.edu/leaderboard.html
+BFCL: From Tool Use to Agentic Evaluation of Large Language Models The Berkeley Function Calling Leaderboard (BFCL) V4 evaluates the LLM's ability to call functions (aka tools) accurately. This leaderboard consists of real-world data and will be updated periodically. For more information on the evaluation dataset and methodology, please refer to our blogs: BFCL-v1 introducing AST as an ...
+
+The Berkeley Function Calling Leaderboard (BFCL): From Tool Use to Agentic Evaluation of Large Language Models | OpenReview
+https://openreview.net/forum?id=2GmDdhBdDk
+Function calling, also called tool use, refers to an LLM's ability to invoke external functions, APIs, or user-defined tools in response to user queries—an essential capability for agentic LLM applications. Despite its prominence, there did not exist a standard benchmark to evaluate function calling abilities, due to two reasons – the challenging nature of evaluating when a function call is valid, and the challenge of acquiring diverse, real-world functions.
+
+Berkeley Function Calling Leaderboard - Gorilla
+https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html
+We present Berkeley Function-Calling Leaderboard (BFCL), the first comprehensive evaluation on the LLM's ability to call functions and tools. We built this dataset from our learnings, to be representative of most users' function calling use-cases, for example, in agents, as a part of enterprise workflows, etc. We consider function calls of various forms including parallel (one function input ...
+
+25 AI benchmarks: examples of AI models evaluation - Evidently AI
+https://www.evidentlyai.com/blog/ai-benchmarks
+Oct 21, 2025 ... ... call external functions, APIs, or tools in response to user queries. ... MetaTool assesses models across four subtasks: selecting the best tool ...
+
+Berkeley Function Calling Leaderboard - ModelScope
+https://www.m
+
+--- MSG 13 ---
+OpenRouter Pricing Calculator & Cost Guide (Mar 2026)
+https://costgoat.com/pricing/openrouter
+5 days ago — Calculate OpenRouter API costs. Compare pricing for Claude, GPT, Gemini, DeepSeek and 290+ models with per-token rates updated daily.
+
+Models | OpenRouter
+https://openrouter.ai/models
+Input is priced at $0.60 per million tokens and output is priced at $2.40 per million tokens. As a 30B-class SOTA model, GLM-4.7-Flash offers a new option that ...
+
+Best AI Models for Chat & Agents: OpenRouter Ra - TeamDay.ai
+https://www.teamday.ai/blog/top-ai-models-openrouter-2026
+The best free models on OpenRouter in 2026 are: Xiaomi MiMo-V2-Flash (309B MoE, #1 on SWE-bench), Devstral 2 (123B coding specialist from Mistral), NVIDIA Nemotron 3 Nano (30B MoE for agents), and DeepSeek V3.1 Nex-N1 (optimized for tool use). All offer 131K-256K context windows with no credit card required.
+
+Pricing - openrouter.ai
+https://openrouter.ai/pricing
+Transparent pricing for OpenRouter. Pay only for what you use with access to 300+ AI models. Free tier, Pay-as-you-go, and Enterprise plans available.
+
+Best LLM for Coding (2026) — AI Model Rankings | Price Per Token
+https://pricepertoken.com/leaderboards/coding
+Pricing data is sourced from OpenRouter and shown per million tokens, so you can evaluate the cost-performance trade-off for your specific workload. Coding LLM pricing spans a wide range. Free and budget-friendly options include open-source models like Llama, DeepSeek, and Qwen that you can run locally or access through affordable API providers.
+
+18 Free AI Models on OpenRouter (2026) – No Credit Card, GPT-4 Level
+https://www.teamday.ai/cs/blog/best-free-ai-models-openrouter-2026
+Jan 12, 2026 — Why free/cheap: DeepSeek offers extremely competitive pricing ($0.55 per million input tokens) and unlimited free queries through their chatbot— ...
+
+OpenRouter Models Pricing Calculator | Compare Model Costs Instantly
+https://invertedstone.com/calculators/openrouter-pricing
+Interactive OpenRoute
+
+--- MSG 14 ---
+Best Local LLMs - 2025 : r/LocalLLaMA - Reddit
+https://www.reddit.com/r/LocalLLaMA/comments/1pwh0q9/best_local_llms_2025/
+Dec 26, 2025 ... The LFM2 model in particular is surprisingly strong for general knowledge, and very quick. Qwen-4B-instruct is really good at tool-calling.
+
+What are your top LLM picks in 2026 and why? : r/artificial - Reddit
+https://www.reddit.com/r/artificial/comments/1qo7psc/what_are_your_top_llm_picks_in_2026_and_why/
+Jan 27, 2026 ... The analysis and responses are way more concise compared to GPT and Gemini. My top 3: Claude: Overall champion. Strong coding capabilities, ...
+
+Best Local LLMs - October 2025 : r/LocalLLaMA - Reddit
+https://www.reddit.com/r/LocalLLaMA/comments/1obqkpe/best_local_llms_october_2025/
+Oct 21, 2025 ... oss 20B runs at 11.3 GB vram on my 3080ti Qwen/Qwen3-30B-A3B cant fit in that vram also the oss has a nicer agentic tool calling structure with ...
+
+Function Calling and Agentic AI in 2025: What the Latest Benchmarks ...
+https://www.klavis.ai/blog/function-calling-and-agentic-ai-in-2025-what-the-latest-benchmarks-tell-us-about-model-performance
+A comprehensive analysis of function calling benchmarks like BFCL and MCPMark, revealing how today's leading models—from GPT-5 to Claude Sonnet 4 and Gemini 2.5—perform in real agentic workflows with multi-step reasoning and tool use.
+
+The Best Open Weights Coding Models of 2025 : r/LocalLLaMA
+https://www.reddit.com/r/LocalLLaMA/comments/1pdin3b/the_best_open_weights_coding_models_of_2025/
+Dec 3, 2025 ... 80 votes, 55 comments. Hi all, I'm back with uncontaminated evals for DeepSeek-V3.2, Kimi K2 Thinking, and MiniMax M2.
+
+Best AI Model for Coding 2026: Codex 5.3 vs Opus 4.6 vs Gemini ... - Morph
+https://www.morphllm.com/best-ai-model-for-coding
+Feb 24, 2026 ... 79.6% SWE-bench at $3/$15 per million tokens. 98% of Opus quality at 60% of the price. For open source: Qwen 2.5 Coder 32B or DeepSeek V3.1. GPT ...
+
+9 Best LLMs for Function Calling and Tool Use in 2026
+https://vision
+
+--- MSG 15 ---
+#### What are the cheapest models under $1 per million input tokens?
+
+The document does not contain specific pricing information for individual models. The page appears to be the OpenRouter Models listing page, but the actual model details, including pricing per million input tokens, are not included in the provided text. You would need to visit the [Models page](/models) or use the "Pricing: Low to High" sort option mentioned in the document to find the cheapest models.
+
+#### What is the pricing for DeepSeek V3, Qwen, Gemini Flash, Llama, Mistral models?
+
+The document does not include specific pricing details for DeepSeek V3, Qwen, Gemini Flash, Llama, Mistral, or any other individual models. The page structure references sorting options like "Pricing: Low to High" and "Pricing: High to Low," but the actual model pricing data is not present in the provided text. You would need to visit the [OpenRouter Models page](/models) or the [Pricing page](/pricing) for this information.
+
+#### What new models were added recently in 2025 2026?
+
+The document does not list any specific models or their release dates. While the page includes a "Newest" sorting option for models, the actual model listings and their addition dates are not present in the provided text. The footer does reference "© 2026 OpenRouter, Inc," confirming the site is current, but no details about recently added models are included in this content.
+
+--- MSG 16 ---
+#### What are the top models for function calling and tool use?
+
+Based on the latest BFCL benchmark results (as of October 2025), the top models for function calling and tool use are:
+
+1. **GLM-4.5 (FC)**: 70.85%
+2. **Claude Opus 4.1**: 70.36%
+3. **Claude Sonnet 4**: 70.29%
+4. **GPT-5**: 59.22%
+
+On the MCPMark benchmark, which tests more realistic, multi-step tool use scenarios, the top performers are:
+
+1. **GPT-5 Medium**: 52.6% pass@1
+2. **Claude Opus 4.1**: 29.9% pass@1
+3. **Claude Sonnet 4**: 28.1% pass@1
+4. **o3**: 25.4% pass@1
+5. **Qwen-3-Coder**: 24.8% pass@1
+
+GPT-5 stands out as the best overall performer for tool use in real-world agentic workflows, while the Claude 4 family excels in structured output generation and reasoning-intensive tasks. Qwen-3-Coder offers the best cost efficiency among capable models.
+
+---
+
+#### What are the BFCL benchmark scores for cheap models like DeepSeek, Qwen, Gemini Flash?
+
+The document does not provide specific BFCL benchmark scores for DeepSeek, Gemini Flash, or individual Qwen models on the BFCL leaderboard. The only budget-friendly model discussed in detail is **Qwen-3-Coder**, which has the following performance data:
+
+- **MCPMark**: 24.8% pass@1 at a cost of only **$36.46 per benchmark run** (the lowest among top performers)
+- It uses Hermes-style tool use for maximized function calling performance
+
+For **Gemini 2.5 Pro**, the document notes it tops the LMArena leaderboard and has native tool integration, but states there is **limited third-party benchmarking on BFCL/MCPMark** available for it.
+
+No BFCL scores or performance data for **DeepSeek** or **Gemini Flash** are mentioned in this document.
+
+---
+
+#### Which models are best for agentic workflows and multi-step reasoning?
+
+For agentic workflows and multi-step reasoning, the document highlights the following models:
+
+- **GPT-5**: The clear leader for agentic workflows, achieving **52.6% pass@1** on MCPMark and **68.5% pass@4**. It offers the best balance of perform
+
+--- MSG 17 ---
+#### What are the top ranked models for function calling?
+
+The document does not contain any information about models or function calling rankings. The page returned a "403 - Forbidden" error, meaning access to the content was denied.
+
+#### What are benchmark scores for each model?
+
+No benchmark scores are available. The document only shows a "403 - Forbidden" access error, so the underlying content could not be retrieved.
+
+#### What is the pricing for each model?
+
+Pricing information is not available in this document. The page access was forbidden (403 error), so no model pricing data was accessible.
+
+#### Which cheap models are best for tool use and agentic workflows?
+
+This information is not available. The document only contains a "403 - Forbidden" error message, indicating that access to the page content was denied, so no details about models for tool use or agentic workflows could be obtained.
+
+--- MSG 18 ---
+#### What are the best cheap models on OpenRouter for agentic use?
+
+Several models stand out as excellent cheap options for agentic use on OpenRouter in 2026:
+
+- **Xiaomi MiMo-V2-Flash** — **Free**. A 309B MoE model with hybrid thinking that matches Claude Sonnet 4.5 on SWE-bench. It's the #1 open-source model on SWE-bench and offers 256K context.
+- **Devstral 2 2512** — **Free** (or $0.05/$0.22 per 1M tokens on the paid tier). Mistral's 123B agentic coding model with multi-file orchestration, framework awareness, and failure recovery. 256K context.
+- **NVIDIA Nemotron 3 Nano** — **Free**. A 30B MoE model designed specifically for agentic AI, with fully open weights, datasets, and recipes. 256K context.
+- **DeepSeek V3.1 Nex-N1** — **Free**. Post-trained for agent autonomy and tool use with 131K context.
+- **MiniMax M2.1** — **$0.28/$1.20 per 1M tokens**. Only 10B activated params but achieves 72.5% SWE-Bench Multilingual at ultra-low cost. 196K context. Described as the "best value for coding."
+- **KwaiPilot Kat Coder Pro** — **$0.21/$0.83 per 1M tokens**. Achieves 73.4% SWE-Bench score at ultra-low cost with strong agentic coding capabilities. 256K context.
+- **Kimi K2.5** — **$0.50/$2 per 1M tokens**. Moonshot's open-source model featuring an agent swarm paradigm with 100 sub-agents and 1,500 parallel tool calls. 256K context.
+
+The article suggests using a cascade workflow — starting with free models like Devstral 2 or MiMo for exploration and planning, using cheap models like MiniMax M2.1 for implementation, and reserving premium models only for final review — which can reduce costs by 70-90%.
+
+#### What is the pricing for DeepSeek, Qwen, Gemini Flash, Llama models?
+
+Based on the document, here is the pricing information available:
+
+- **DeepSeek V3.2** — **$0.25/$0.38 per 1M tokens** (input/output). 163K context. Described as the "value champion" that matches GPT-4o at 1/40th the cost.
+
+- **Qwen3.5 Plus** — **$0.40/$2 per 1M tokens** (input/output). 1M context. 
+
+--- MSG 19 ---
+LLM Leaderboard 2025: Claude 4 Hits 72.7% SWE-bench, DeepSeek R1 ...
+https://www.mangomindbd.com/blog/ai-model-comparison-llm-leaderboard
+Oct 10, 2025 — The Smart Money Strategy: Use expensive models for critical thinking tasks, cheaper models for processing and generation work. Your wallet will ...
+
+Comprehensive Analysis of Qwen3.5 Flash: A New Fro... - UniFuncs
+https://unifuncs.com/s/AW23G1uK
+Qwen3.5 Flash's pricing of $0.10 per million input tokens—approximately 25 times cheaper than comparable proprietary models—makes large-scale AI deployment ...
+
+LLM Leaderboard 2026 - Complete AI Model Rankings
+https://llm-stats.com/leaderboards/llm-leaderboard
+Cheap (<$1) Fast. OpenAI logo OpenAI. Anthropic logo Anthropic Google logo Google Meta logo Meta Qwen logo Qwen Mistral logo Mistral DeepSeek logo DeepSeek
+
+Berkeley Function Calling Leaderboard (BFCL) V4
+https://gorilla.cs.berkeley.edu/leaderboard.html
+BFCL: From Tool Use to Agentic Evaluation of Large Language Models The Berkeley Function Calling Leaderboard (BFCL) V4 evaluates the LLM's ability to call functions (aka tools) accurately. This leaderboard consists of real-world data and will be updated periodically. For more information on the evaluation dataset and methodology, please refer to our blogs: BFCL-v1 introducing AST as an ...
+
+Kimi and Z.AI: The more Chinese, the merrier! - Homo Ludditus
+https://ludditus.com/2025/07/29/kimi-ai-the-more-chinese-the-merrier/
+Jul 29, 2025 ... Crazy days to live, eh? Kimi K2, by Moonshot AI. OK, so the Alibaba-backed startup Moonshot released on July 11 its Kimi K2 model as a low-cost ...
+
+Open LLM Leaderboard 2026 - Open Source AI Models
+https://llm-stats.com/leaderboards/open-llm-leaderboard
+Cheap (<$1) Fast. OpenAI logo OpenAI. Anthropic logo Anthropic Google logo Google Meta logo Meta Qwen logo Qwen Mistral logo Mistral DeepSeek logo DeepSeek
+
+The Berkeley Function Calling Leaderboard (BFCL): From Tool Use to ...
+https://openreview.net/forum?id=2GmDdhBdDk
+This paper is ab
+
+--- MSG 20 ---
+#### What are the BFCL scores for all models listed?
+
+The document does not contain any BFCL (Berkeley Function Calling Leaderboard) scores. The page appears to be a navigation/index page for llm-stats.com, listing links to various arenas, benchmarks, models, and leaderboards, but it does not include any actual benchmark score data for any models.
+
+#### Which cheap models score highest on function calling?
+
+The document does not provide any information about function calling scores or model pricing. No BFCL or function calling benchmark data is included in the provided text, so it is not possible to determine which cheap models score highest on function calling from this document.
+
+#### What are the scores for DeepSeek, Qwen, Gemini, Llama models?
+
+The document does not include any benchmark scores for DeepSeek, Qwen, Gemini, Llama, or any other models. While some of these models are mentioned by name in the navigation links (e.g., Gemini 3 Pro, Qwen3-235B-A22B-Thinking, DeepSeek-R1-0528), the document only provides links to their respective pages and does not contain any actual performance data or scores.
+
+--- MSG 21 ---
+Top LLMs 2025: Best Models for Modern AI Systems Explained
+https://www.thesys.dev/blogs/top-llms
+Dec 18, 2025 ... Models weren't judged only by what they say, but what they can do: Call tools in the right order; Recover when a tool fails; Keep the plan ...
+
+Structured Output Comparison across popular LLM providers — OpenAI, ...
+https://medium.com/@rosgluk/structured-output-comparison-across-popular-llm-providers-openai-gemini-anthropic-mistral-and-1a5d42fa612a
+Here's a side-by-side support comparison of structured output (getting reliable JSON back) across popular LLM providers, plus minimal Python examples We already had a look how to request ...
+
+Benchmarking LLMs' Capabilities to Generate Structural Outputs
+https://arxiv.org/html/2505.20139v2
+Jan 19, 2026 ... ... tool designed for structured data. The final dataset contains 2035 ... Despite its significance, structured output generation remains challenging ...
+
+Structured Output and JSON Mode in LLMs 2026 | Zylos Research
+https://zylos.ai/research/2026-01-14-structured-output-llms
+Structured output generation has matured from an experimental capability to a production-ready technology across all major LLM providers in 2026. The convergence of APIs, libraries, and best practices has made reliable structured output accessible to developers at all scales.
+
+Generate structured output from LLMs with Dottxt Outlines in AWS
+https://aws.amazon.com/blogs/machine-learning/generate-structured-output-from-llms-with-dottxt-outlines-in-aws/
+Feb 24, 2026 ... Tool calling and function execution: Agentic workflows depend on the ability of the LLM model to invoke functions with correctly typed ...
+
+The guide to structured outputs and function calling with LLMs
+https://agenta.ai/blog/the-guide-to-structured-outputs-and-function-calling-with-llms
+Sep 10, 2025 ... Function calling allows Large Language Models to interact with external tools ... tool definition with a JSON schema for a function call. import ...
+
+The best large languag
+
+--- MSG 22 ---
+#### Which models have the best structured JSON output support?
+
+According to the document, **OpenAI** and **Google Gemini** have the strongest, first-class JSON schema enforcement:
+
+- **OpenAI** offers native JSON mode **and** full JSON Schema enforcement server-side via `response_format={"type":"json_schema", ...}`. The document describes this as a first-class "Structured Outputs" feature that enforces the schema on the server side.
+- **Google Gemini** also provides native JSON mode and first-class JSON Schema enforcement through `response_schema` combined with `response_mime_type="application/json"`. It returns strictly validated JSON when a schema is set.
+
+These two providers are highlighted in the practical guidance section: *"If you want the strongest server-side guarantees: OpenAI structured outputs or Gemini response schema."*
+
+**Anthropic (Claude)** supports JSON schema enforcement indirectly through its **Tool Use** mechanism with `input_schema`, which yields schema-shaped arguments. It does not have a generic "JSON mode" switch but can still produce reliable structured output when tool use is forced.
+
+**AWS Bedrock** supports JSON schema enforcement via the **Converse API Tool schema**, which validates tool input against a JSON schema and works across multiple hosted models (e.g., Claude).
+
+#### How do different providers compare for structured output reliability?
+
+The document provides a clear comparison across providers:
+
+| Provider | Reliability Level | Mechanism |
+|---|---|---|
+| **OpenAI** | Highest — server-side schema enforcement | Native JSON mode + JSON Schema enforcement via `response_format` |
+| **Google Gemini** | Highest — server-side schema enforcement | Native JSON mode + `response_schema` with JSON MIME type |
+| **Anthropic (Claude)** | High — indirect but schema-validated | No native JSON mode; uses **Tool Use** with `input_schema` to force schema-shaped output |
+| **Mistral** | Moderate — guarantees valid JSON but **not** schema conforma
+
+--- MSG 23 ---
+DeepSeek V3.1 - API, Providers, Stats - OpenRouter
+https://openrouter.ai/deepseek/deepseek-chat-v3.1
+Aug 21, 2025 ... Effective Pricing for DeepSeek V3.1 · Actual cost per million tokens across providers over the past hour · Weighted Average · Input Price / 1M ...
+
+Nex AGI: DeepSeek V3.1 Nex N1 – Effective Pricing | OpenRouter
+https://openrouter.ai/nex-agi/deepseek-v3.1-nex-n1/pricing
+Effective Pricing for DeepSeek V3.1 Nex N1 · Actual cost per million tokens across providers over the past hour · Weighted Average · Input Price / 1M tokens (7 ...
+
+DeepSeek V3 - API, Providers, Stats
+https://openrouter.ai/deepseek/deepseek-chat
+Dec 26, 2024 — Actual cost per million tokens across providers over the past hour. Weighted Average. Weighted Avg Input Price. $0.372. per 1M tokens. Weighted ...
+
+DeepSeek: DeepSeek V3 - Effective Pricing | OpenRouter
+https://openrouter.ai/deepseek/deepseek-chat/pricing
+Effective pricing across providers for DeepSeek: DeepSeek V3 - DeepSeek-V3 is the latest model from the DeepSeek team, building upon the instruction following and coding abilities of the previous versions. Pre-trained on nearly 15 trillion tokens, the reported evaluations reveal that the model outperforms other open-source models and rivals leading closed-source models. For model details ...
+
+Models: 'pe' - OpenRouter
+https://openrouter.ai/pe
+Audio is priced at $32 per million input tokens and $64 per million output tokens. by openaiJan 19, 2026128K context$2.50/M input ...
+
+DeepSeek V3 | OpenRouter
+https://openrouter.ai/deepseek/deepseek-chat/parameters
+Dec 26, 2024 ... © 2026 OpenRouter, Inc. Product. Chat ... Effective Pricing for DeepSeek V3. Actual cost per million tokens across providers over the past hour ...
+
+DeepSeek: DeepSeek V3.2 - Effective Pricing | OpenRouter
+https://openrouter.ai/deepseek/deepseek-v3.2/pricing
+Effective Pricing for DeepSeek V3.2 Actual cost per million tokens across providers over the past hour
+
+DeepSeek V3.1 Terminus (exacto) - API, Providers, S
+
+--- MSG 24 ---
+Models - OpenRouter
+https://openrouter.ai/models
+Input is priced at $0.60 per million tokens and output is priced at $2.40 per million tokens. As a 30B-class SOTA model, GLM-4.7-Flash offers a new option that ...
+
+Models: 'pe' - OpenRouter
+https://openrouter.ai/pe
+Pricing is based on tokens plus $18 per thousand requests. This model powers the Pro Search mode on the Perplexity platform. Sonar Pro Search adds autonomous, ...
+
+Qwen3 Coder Flash vs Grok 4 Fast - openrouter.ai
+https://openrouter.ai/compare/qwen/qwen3-coder-flash/x-ai/grok-4-fast
+Compare Qwen3 Coder Flash from Qwen and Grok 4 Fast from xAI on key metrics including price, context length, and other model features.
+
+Qwen3 Coder 480B A35B - API, Providers, Stats
+https://openrouter.ai/qwen/qwen3-coder
+Jul 23, 2025 — Actual cost per million tokens ... Weighted Average. Weighted Avg Input Price. $0.263. per 1M tokens. Weighted Avg Output Price. $1.63. per 1M ...
+
+Simon Willison on openrouter
+https://simonwillison.net/tags/openrouter/
+It's priced at $0.20/million input tokens and $0.50/million output tokens - 15x less than Grok 4 (which is $3/million input and $15/million output). ... llm -m ...
+
+qwen3-coder-flash - AI Model by openrouter
+https://langdb.ai/app/providers/openrouter/qwen3-coder-flash
+Access qwen3-coder-flash by openrouter through LangDB's unified AI gateway. View real-time pricing (Input: $0.3/1M tokens, Output: $1.5/1M tokens), performance metrics, benchmarks, and API documentation. Compare with 322+ other AI models.
+
+Qwen3 Coder Next Model Specs, Costs & Benchmarks (March 2026)
+https://blog.galaxy.ai/model/qwen3-coder-next
+Feb 4, 2026 — The model costs $0.12 per million tokens for input and $0.75 per million tokens for output. It was released on February 4, 2026, and has ...
+
+Grok 4 vs Qwen3 Coder Flash (Comparative Analysis) | Galaxy.ai
+https://blog.galaxy.ai/compare/grok-4-vs-qwen3-coder-flash
+Grok 4 is roughly 10.0x more expensive compared to Qwen3 Coder Flash for input tokens and roughly 10.
+
+--- MSG 25 ---
+Gemini 3 Flash Preview - API, Providers, Stats | OpenRouter
+https://openrouter.ai/google/gemini-3-flash-preview
+Dec 17, 2025 ... Effective Pricing for Gemini 3 Flash Preview. Actual cost per million tokens across providers over the past hour. Weighted Average. Weighted ...
+
+Models - OpenRouter
+https://openrouter.ai/models
+Priced at half the cost of Gemini 3 Flash. by googleMar 2 ... Input is priced at $0.60 per million tokens and output is priced at $2.40 per million tokens.
+
+Stop overpaying for OpenClaw: Multi-model routing guide
+https://velvetshark.com/openclaw-multi-model-routing
+Feb 4, 2026 ... Model pricing comparison. Here's a comparison of models and their costs per million tokens (input + output combined): ... OpenRouter: openrouter.
+
+Gemini API Pricing Calculator 2026 | Gemini 3.1 Pro, 3 Pro, 3 Flash, 2.5 Pro ...
+https://invertedstone.com/calculators/gemini-pricing
+Current Gemini API Pricing. Latest Google Gemini model prices per million tokens. Gemini 3.1 Pro Preview. Input: $2.00/1M (≤200k), $4.00/1M (>200k). Output ...
+
+Gemini 3.1 Flash Lite : r/Bard - Reddit
+https://www.reddit.com/r/Bard/comments/1rjtfa3/gemini_31_flash_lite/
+23 hours ago ... On the other hand, pricing is not just 'price per million tokens' this is an important misconception that people have. Models can tokenize ...
+
+Choosing the Right AI Model for Website Change Monitoring in 2026
+https://pagecrawl.io/help/tutorials/article/choosing-best-ai-model-website-monitoring
+Feb 11, 2026 ... Verify current rates at: OpenAI, Gemini, Anthropic, OpenRouter. Why ... Prices per million tokens. Most of your cost will be input ...
+
+Gemini 3 Pro Preview - API, Providers, Stats
+https://openrouter.ai/google/gemini-3-pro-preview
+Effective Pricing for Gemini 3 Pro Preview. Actual cost per million tokens across providers over the past hour. Weighted Average. Weighted Avg Input Price.
+
+Gemini API Pricing Calculator & Cost Guide (Feb 2026) - CostGoat
+https://costgoat.com/pricing/gemini-api
+Feb 8, 2026 ... Exam
+
+--- MSG 26 ---
+Best Local LLMs - October 2025 : r/LocalLLaMA - Reddit
+https://www.reddit.com/r/LocalLLaMA/comments/1obqkpe/best_local_llms_october_2025/
+Oct 21, 2025 ... ... agentic framework to maximize the use of my GPU lately. I know I could get away with simply sequencing LLM calls and strictly control the ...
+
+[AINews] Nano Banana 2 aka Gemini 3.1 Flash Image Preview
+https://www.latent.space/p/ainews-nano-banana-2-aka-gemini-31
+5 days ago — The GLM-4.7 quantized model is noted as the best local model, outperforming Qwen 3.5 models. ... agentic framework used might affect results. They ...
+
+Building Local + Hybrid LLMs on DGX Spark That Outperform Top Cloud ...
+https://forums.developer.nvidia.com/t/building-local-hybrid-llms-on-dgx-spark-that-outperform-top-cloud-models/359569
+Feb 3, 2026 ... This seems to be a nice setup. As for the agentic framework, my ... [8] default model settings across multiple models - ollama model file Reddit - ...
+
+GitHub - agent0ai/agent-zero: Agent Zero AI framework
+https://github.com/agent0ai/agent-zero
+Agent Zero is not a predefined agentic framework. It is designed to be dynamic, organically growing, and learning as you use it. Agent Zero is fully transparent, readable, comprehensible, customizable, and interactive. Agent Zero uses the computer as a tool to accomplish its (your) tasks.
+
+Comprehensive Analysis of Qwen3.5 Flash: A New Fro... - UniFuncs
+https://unifuncs.com/s/AW23G1uK
+The fastest and cheapest native Qwen 3.5 vision-language model. Benchmarks ... Agent Zero Build autonomous AI agents effortlessly. 450M tokens. Cline
+
+johe123qwe/github-trending: 定时抓取 Github Trending - GitHub
+https://github.com/johe123qwe/github-trending
+【2024-09-15】frdel / agent-zero - Agent Zero AI framework; 【2024-09-10】 ... agentic framework that uses computers like a human; 【2025-03-13】microsoft ...
+
+The Hitchhiker's Guide to Cyber AI Liberation — share this with yours
+https://www.moltbook.com/post/65ad8d62-aba0-4f88-9401-a3d9417815cf
+OpenClaw is an open-source a
+
+--- MSG 27 ---
+#### What are the cheapest LLM models under $1 per million input tokens?
+
+Based on the document, the following models have input pricing under $1 per million tokens:
+
+- **LiquidAI LFM2-2.6B** — $0.02/1M output (input not explicitly listed, but extremely low cost)
+- **LiquidAI LFM2-8B-A1B** — $0.02/1M output
+- **Google Gemma 3n 4B** — $0.04/1M output
+- **Meta Llama 3 8B Instruct** — $0.04/1M output
+- **Meta Llama 3.1 8B Instruct** — $0.05/1M output
+- **Meta Llama 3.2 11B Vision Instruct** — $0.05/1M output
+- **Mistral Small 3** — $0.08/1M output
+- **Qwen3 235B A22B Instruct 2507** — $0.10/1M output
+- **OpenAI gpt-oss-20b** — $0.14/1M output
+- **OpenAI gpt-oss-120b** — $0.19/1M output
+- **DeepSeek V3.2** — $0.25/1M input, $0.40/1M output
+- **OpenAI GPT-5 Mini** — $0.25/1M input, $2.00/1M output
+- **MiniMax M2.1** — $0.27/1M input, $0.95/1M output
+- **MiniMax M2.5** — $0.30/1M input, $1.20/1M output
+- **Z-AI GLM-4.7** — $0.30/1M input, $1.40/1M output
+- **Xiaomi Mimo V2 Flash** — $0.09/1M input, $0.29/1M output
+- **MoonshotAI Kimi K2.5** — $0.45/1M input, $2.20/1M output
+- **MoonshotAI Kimi K2 Thinking** — $0.47/1M input, $2.00/1M output
+- **Google Gemini 3 Flash Preview** — $0.50/1M input, $3.00/1M output
+- **Qwen3 Max Thinking** — $0.78/1M input, $3.90/1M output
+- **Z-AI GLM-5** — $0.80/1M input, $2.56/1M output
+
+#### What is the pricing for DeepSeek, Qwen, Gemini Flash, Llama, Mistral, GPT-4o-mini models?
+
+Based on the data in the document:
+
+- **DeepSeek V3.2** — $0.25/1M input, $0.40/1M output (Quality: 79, Value: 197.5). The FAQ notes it is among the cheapest high-quality options at $0.14/$0.28 per 1M tokens in some references, making it over 100x cheaper than GPT-5 for output tokens.
+
+- **Qwen3 235B A22B Instruct 2507** — $0.10/1M output (Quality: 55, Value: 550.0)
+- **Qwen3 Max Thinking** — $0.78/1M input, $3.90/1M output (Quality: 75, Value: 19.2)
+
+- **Google Gemini 3 Flash Preview** — $0.50/1M input, $3.00/1M output (Quality: 87, Value: 29.0). The FAQ also men
+
+--- MSG 28 ---
+#### What are the best cheap models recommended for tool calling and agentic use?
+
+Based on the document, the models recommended for agentic coding and tool use are **Qwen3-Coder-30B-A3B** and **GLM-4.5-Air:AWQ-FP16Mix**. These are praised for their coding capabilities, with one user noting that Qwen3-Coder-30B-A3B at Q8 quantization is their favourite model for daily usage with up to 48GB VRAM. The document does not provide specific pricing details or a broader comparison of "cheap" models for tool calling beyond these recommendations.
+
+#### What models are recommended as best value for the price?
+
+The document highlights several models that appear to offer strong value given their smaller size and efficiency. **LFM2-8B-A1B** and **Qwen3-4B-instruct** are described as top "small models," praised for both performance and efficiency, which suggests strong value relative to their computational requirements. **Qwen3-Coder-30B-A3B** is also notable as a Mixture-of-Experts model (30B total, 3B active parameters), meaning it delivers large-model-level capability with much lower resource usage. Additionally, **NemoMix Unleashed** is mentioned for its strong instruction-following without refusal, and **Gemma 3 27b abliterated** is recommended for uncensored use cases. However, the document does not explicitly discuss monetary pricing or formal "best value for price" rankings.
+
+#### What do users say about DeepSeek, Qwen, Gemini Flash for agentic tasks?
+
+The document contains user recommendations for **Qwen** models in the context of agentic and coding tasks but does not mention **DeepSeek** or **Gemini Flash** at all. Specifically, **Qwen3-Coder-30B-A3B** is recommended for agentic coding and tool use, and **Qwen3-4B-instruct** is praised as one of the best small models for general knowledge and speed. There is no user discussion or comparison involving DeepSeek or Gemini Flash for agentic tasks in the provided document.
+
+--- MSG 29 ---
+#### What are the top 9 models and their rankings?
+
+The top 9 Large Language Models as of March 2026, as ranked in the article, are:
+
+1. **OpenAI (GPT)** – Including GPT-5.2 and the new open-weight GPT-oss models (120b and 20b)
+2. **DeepSeek** – Including DeepSeek-V3.2-Exp and the DeepSeek-R1 series
+3. **Qwen (Alibaba)** – Including the Qwen3 series, Qwen3-Next, and Qwen2.5-Max
+4. **Grok (xAI)** – Including Grok 4.1 (which holds #1 on LMArena Elo ranking at 1483 Elo) and Grok Code Fast 1
+5. **Llama (Meta)** – Including Llama 4 Scout and Llama 4 Maverick
+6. **Claude (Anthropic)** – Including Claude Opus 4, Claude Sonnet 4.5, and Claude Haiku 4.5
+7. **Mistral** – Including the Mistral 3 family and Large 3 (675B MoE)
+8. **Gemini (Google DeepMind)** – Referenced but details not fully included in the provided text
+9. **Cohere** – Including the Command A family of enterprise-focused models
+
+#### Which models are best for tool calling and function calling?
+
+Based on the document, the following models are highlighted for tool calling and function calling capabilities:
+
+- **OpenAI GPT-oss** (120b and 20b) – Specifically noted as being "particularly effective for agentic workflows, tool use, and few-shot function calling."
+- **DeepSeek** – Described as "the first model to integrate 'thinking' directly into tool-use capabilities, bridging the gap between reasoning and action."
+- **Grok Code Fast 1** – Built for "agentic coding," excelling at automating software development workflows.
+- **Claude Sonnet 4.5** – Noted as "the best for real-world agents" and capable of autonomously sustaining complex, multi-step tasks for over 30 hours.
+
+#### What is the pricing for each model?
+
+The document provides limited pricing information. The specific details mentioned are:
+
+- **DeepSeek** – Offers an aggressive pricing structure with input costs as low as **$0.07 per million tokens** (with cache hits).
+- **Mistral Large 3** – Delivers 92% of GPT-5.2's performance at roughly **15% of the pr
+
+--- MSG 30 ---
+Qwen/Qwen3.5-4B - Hugging Face
+https://huggingface.co/Qwen/Qwen3.5-4B
+Tool Call: To support tool use, you can use the following command. vllm serve Qwen/Qwen3.5-4B --port 8000 --tensor-parallel-size 1 --max-model- ...
+
+Qwen: Qwen3.5: Towards Native Multimodal Agents
+https://qwen.ai/blog?id=qwen3.5
+QWEN CHAT GitHub Hugging Face ModelScope DISCORD We are delighted to announce the official release of Qwen3.5, introducing the open-weight of the first model in the Qwen3.5 series, namely Qwen3.5-397B-A17B. As a native vision-language model, Qwen3.5-397B-A17B demonstrates outstanding results across a full range of benchmark evaluations, including reasoning, coding, agent capabilities, and ...
+
+Qwen 3.5 craters on hard coding tasks — tested all Qwen3.5 models (And ...
+https://www.reddit.com/r/LocalLLaMA/comments/1reds0p/qwen_35_craters_on_hard_coding_tasks_tested_all/
+... tools, you name it. All models get the same starting point, agentic tool-use, scored on. Correctness/completeness/quality/efficiency, ELO ...
+
+Alibaba's new open source Qwen3.5-Medium models offer Sonnet 4.5 ...
+https://venturebeat.com/technology/alibabas-new-open-source-qwen3-5-medium-models-offer-sonnet-4-5-performance
+The API also features a granular Tool Calling pricing model, with Web Search at $10 per 1,000 calls and Code Interpreter currently offered for a limited time at no cost.
+
+Qwen: Qwen3.5-27B Review — Pricing, Benchmarks & Capabilities (2026 ...
+https://designforonline.com/ai-models/qwen-qwen3-5-27b/
+Qwen3.5-27B delivers very strong reasoning and agentic capability with a 262K context window, multimodal input, and competitive pricing, making it one of the more capable mid-size models available. Accessibility limitations for Western businesses apply a modest penalty, but this remains a genuinely impressive open-weight model for its class. Assessment date: February 26, 2026
+
+Qwen3.5-Flash - API, Providers, Stats | OpenRouter
+https://openrouter.ai/qwen/qwen3.5-flash-02-23
+7 days ago — It is opti
+
+--- MSG 31 ---
+GPT-5 Mini - API, Providers, Stats - OpenRouter
+https://openrouter.ai/openai/gpt-5-mini
+GPT-5 Mini is a compact version of GPT-5, designed to handle lighter-weight reasoning tasks. It provides the same instruction-following and safety-tuning benefits as GPT-5, but with reduced latency and cost. GPT-5 Mini is the successor to OpenAI's o4-mini model.
+
+gpt-5-mini Cost Calculator - OpenRouter | Bifrost
+https://www.getmaxim.ai/bifrost/llm-cost-calculator/provider/openrouter/model/gpt-5-mini
+About gpt-5-mini gpt-5-mini is a powerful chat AI model offered by OpenRouter. This comprehensive guide provides detailed pricing information, technical specifications, and capabilities to help you understand the costs and features of using gpt-5-mini in your applications.
+
+Pricing | OpenAI API
+https://developers.openai.com/api/docs/pricing/
+Function calling · Responses API. Agents. Overview; Build agents. Agent Builder ... gpt-5-mini, $0.25, $0.025, $2.00. gpt-5-nano, $0.05, $0.005, $0.40. gpt-5.3- ...
+
+GPT-5: Key characteristics, pricing and model card
+https://simonw.substack.com/p/gpt-5-key-characteristics-pricing
+Aug 8, 2025 ... Here are the OpenAI model pages for GPT-5, GPT-5 mini and GPT-5 nano. ... Tools that call OpenRouter can include HTTP-Referer and X-Title ...
+
+Models - OpenRouter
+https://openrouter.ai/models
+... GPT-5 Image MiniGPT-5 Image Mini. 195M tokens. GPT-5 Image Mini ... agentic capabilities including function calling, tool use, and structured outputs.
+
+GPT-5 Nano - API, Providers, Stats
+https://openrouter.ai/openai/gpt-5-nano
+Aug 7, 2025 — ... GPT-5 system, optimized for developer tools, rapid ... agentic capabilities including function calling, tool use, and structured outputs.
+
+OpenAI: GPT-5 Nano – Effective Pricing | OpenRouter
+https://openrouter.ai/openai/gpt-5-nano/pricing
+Aug 7, 2025 ... GPT-5-Nano is the smallest and fastest variant in the GPT-5 system, optimized for developer tools, rapid interactions, and ultra-low latency ...
+
+OpenAI
+https://openrouter.
+
+--- MSG 32 ---
+#### What is the input and output price per million tokens for GPT-5 Nano?
+
+GPT-5 Nano is priced at **$0.05 per million input tokens** and **$0.40 per million output tokens**. Additionally, it costs **$10 per 1K web searches**.
+
+#### What capabilities does GPT-5 Nano have for tool calling and function calling?
+
+The document does not provide specific details about GPT-5 Nano's tool calling or function calling capabilities. It only mentions that the model is "optimized for developer tools, rapid interactions, and ultra-low latency environments" and that it "retains key instruction-following and safety features." No explicit information about tool calling or function calling support is included in the provided text.
+
+--- MSG 33 ---
+#### What is the input and output price per million tokens?
+
+The pricing for gpt-oss-20b is **$0.03 per million input tokens** and **$0.14 per million output tokens**.
+
+#### What are the model capabilities for tool calling and agentic use?
+
+gpt-oss-20b supports agentic capabilities including **function calling**, **tool use**, and **structured outputs**. It also supports reasoning level configuration and fine-tuning.
+
+#### What is the context window size?
+
+The context window size for gpt-oss-20b is **131,072 tokens** (128K context).
+
+--- MSG 34 ---
+#### What is the input and output price per million tokens?
+
+Grok 4 Fast starts at **$0.20 per million input tokens** and **$0.50 per million output tokens**. Additionally, web search is priced at **$5 per thousand searches**.
+
+#### What are the model capabilities?
+
+Grok 4 Fast is xAI's latest **multimodal model** with state-of-the-art (SOTA) cost-efficiency. It comes in two flavors: **non-reasoning and reasoning**. Reasoning can be enabled or disabled using the `reasoning` `enabled` parameter in the API. The model also supports **web search** capabilities. Based on the recent activity stats, it processes prompt tokens, reasoning tokens (internal thinking before a response), and completion tokens.
+
+#### What is the context window?
+
+Grok 4 Fast has a **2,000,000 token context window** (2M tokens).
+
+--- MSG 35 ---
+Tool Calls | DeepSeek API Docs
+https://api-docs.deepseek.com/guides/tool_calls
+In strict mode, the model strictly adheres to the format requirements of the Function's JSON schema when outputting a tool call, ensuring that the model's output complies with the user's definition.
+
+DeepSeek-V3.2 Usage Guide - vLLM Recipes
+https://docs.vllm.ai/projects/recipes/en/latest/DeepSeek/DeepSeek-V3_2.html
+Introduction DeepSeek-V3.2 is a model that balances computational efficiency with strong reasoning and agent capabilities through three technical innovations: - DeepSeek Sparse Attention (DSA): An efficient attention mechanism that reduces computational complexity while maintaining performance, optimized for long-context scenarios.
+
+DeepSeek-V3.2 Release
+https://api-docs.deepseek.com/news/news251201
+Dec 1, 2025 ... 2-Speciale — Reasoning-first models built for agents! DeepSeek-V3.2: Official successor to V3.2-Exp. Now live on App, Web & API.
+
+Change Log
+https://api-docs.deepseek.com/updates
+JSON Output & Function Calling Support. Function call performance: Tau-bench score: 53.5 (Airline) / 63.9 (Retail). Date: 2025-03-24​. deepseek-chat​. deepseek ...
+
+How does DeepSeek-V3.2 improve tool-calling accuracy? - Milvus
+https://milvus.io/ai-quick-reference/how-does-deepseekv32-improve-toolcalling-accuracy
+Benchmarks like BrowseComp and SWE Verified in agent mode show V3.2-Exp maintaining or slightly improving performance relative to V3.1-Terminus while generating ...
+
+deepseek-ai/DeepSeek-V3.2 - Hugging Face
+https://huggingface.co/deepseek-ai/DeepSeek-V3.2
+DeepSeek-V3.2 introduces significant updates to its chat template compared to prior versions. The primary changes involve a revised format for tool calling and the introduction of a "thinking with tools" capability.
+
+deepseek-ai / deepseek-v3.2
+https://docs.api.nvidia.com/nim/reference/deepseek-ai-deepseek-v3_2
+Dec 16, 2025 — DeepSeek-V3.2 is a state-of-the-art large language model that harmonizes high computational efficiency with
+
+--- MSG 36 ---
+Berkeley Function Calling Leaderboard (BFCL) V4 - Gorilla
+https://gorilla.cs.berkeley.edu/leaderboard.html
+BFCL: From Tool Use to Agentic Evaluation of Large Language Models The Berkeley Function Calling Leaderboard (BFCL) V4 evaluates the LLM's ability to call functions (aka tools) accurately. This leaderboard consists of real-world data and will be updated periodically. For more information on the evaluation dataset and methodology, please refer to our blogs: BFCL-v1 introducing AST as an ...
+
+Function Calling and Agentic AI in 2025: What the Latest ... - Klavis AI
+https://www.klavis.ai/blog/function-calling-and-agentic-ai-in-2025-what-the-latest-benchmarks-tell-us-about-model-performance
+A comprehensive analysis of function calling benchmarks like BFCL and MCPMark, revealing how today's leading models—from GPT-5 to Claude Sonnet 4 and Gemini 2.5—perform in real agentic workflows with multi-step reasoning and tool use.
+
+The Berkeley Function Calling Leaderboard (BFCL): From Tool Use to ...
+https://openreview.net/forum?id=2GmDdhBdDk
+Finally, BFCL benchmark evaluates the ability of models to abstain and reason in stateful multi-step agentic setting. Evaluating a wide range of models, we observe that while state-of-the-art LLMs excel at singleturn calls, memory, dynamic decision-making, and long-horizon reasoning remain open challenges.
+
+BFCL - LLM Leaderboard
+https://llm-stats.com/benchmarks/bfcl
+The Berkeley Function Calling Leaderboard (BFCL) is the first comprehensive ... function call evaluation dedicated to assessing Large Language Models' ability to ...
+
+The Berkeley Function Calling Leaderboard (BFCL): From Tool Use ...
+https://icml.cc/virtual/2025/poster/46593
+We present the Berkeley Function Calling Leaderboard (BFCL), a comprehensive benchmark designed to evaluate function calling capabilities in a wide range of ...
+
+ai agent leaderboards.md - GitHub Gist
+https://gist.github.com/chunhualiao/c9f5d258aa003f40224303f402d9f3c5
+As of April 1, 2025, the Galileo 
+
+--- MSG 37 ---
+#### What are the top 10 models on the BFCL leaderboard for function calling?
+
+The document does not provide a list of the top 10 models on the BFCL leaderboard. It mentions that models are evaluated and results are available, but the specific leaderboard data with model rankings is not included in the provided text.
+
+#### What is the score of the top models for tool calling?
+
+The document does not provide specific scores for the top models. It mentions that overall accuracy is the unweighted average of all sub-categories and refers to a blog for details on score composition, but no numerical scores are included in the provided text.
+
+#### Which cheap models perform well on function calling?
+
+The document does not specifically mention cheap models or their performance on function calling. It provides information about cost being an estimate for the entire benchmark in USD and latency in seconds, but no specific cheap models are highlighted.
+
+#### What are the scores for DeepSeek, Qwen, Llama models?
+
+The document does not include specific scores for DeepSeek, Qwen, or Llama models. The leaderboard data with model-specific scores is not present in the provided text.
+
+--- MSG 38 ---
+Models - OpenRouter
+https://openrouter.ai/models
+The model is suitable for agent frameworks and tool use (function calling) ... model based on Qwen 2.5 32B, using outputs from DeepSeek R1. It outperforms ...
+
+OpenRouter Free Models: All 31 Listed (Feb 2026) - CostGoat
+https://costgoat.com/pricing/openrouter-free-models
+Feb 14, 2026 — OpenRouter offers select models at zero cost — no API key charges, no hidden fees. Free models are subsidized by OpenRouter and have rate limits ...
+
+Models: ')' | OpenRouter
+https://openrouter.ai/)
+The model supports configurable reasoning depth, full chain-of-thought access, and native tool use, including function calling, browsing, and structured output ...
+
+OpenRouter Pricing Calculator & Cost Guide (Mar 2026)
+https://costgoat.com/pricing/openrouter
+Calculate OpenRouter API costs. Compare pricing for Claude, GPT, Gemini, DeepSeek and 290+ models with per-token rates updated daily.
+
+Qwen | OpenRouter
+https://openrouter.ai/qwen
+The model is suitable for agent frameworks and tool use (function calling) ... 5, is a 1M context model that provides fast speed and low cost, suitable for simple ...
+
+Models: 'free' - OpenRouter
+https://openrouter.ai/models/?q=free
+Engineered for efficient reasoning over long contexts (131k) with robust function calling and multi-step agent workflows. ... model developed by the Qwen team.
+
+Best AI Models for Chat & Agents: OpenRouter Ranked (February 2026)
+https://www.teamday.ai/blog/top-ai-models-openrouter-2026
+Feb 23, 2026 — Combined with DeepSeek V3.2 challenging frontier models at a fraction of the cost, there are now over 47+ models available on OpenRouter.
+
+OpenRouter Models Pricing Calculator | Compare Model Costs Instantly
+https://invertedstone.com/calculators/openrouter-pricing
+Interactive OpenRouter models pricing calculator. Enter tokens once and instantly compare estimated costs across Anthropic, OpenAI, xAI, Google, Perplexity, Mistral, DeepSeek and more.
+
+Pricing - OpenRouter
+https://openrouter.
+
+--- MSG 39 ---
+Berkeley Function Calling Leaderboard (BFCL) V4 - Gorilla
+https://gorilla.cs.berkeley.edu/leaderboard.html
+... multi-turn interactions, and BFCL-v4 introducing holistic agentic evaluation. Checkout code and data. Last Updated: 2025-12-16 [Change Log]. Search ...
+
+Deepseek V3 benchmarks are a reminder that Qwen 2.5 72B is the real ...
+https://www.reddit.com/r/LocalLLaMA/comments/1hmqpca/deepseek_v3_benchmarks_are_a_reminder_that_qwen/
+Dec 26, 2024 ... I run Qwen2.5-72B at 32k context at 4.65bpw on 2x3090 with Q6 KV cache plus tensor parallelism, it is FAST and good. I do not care about ...
+
+Berkeley Function Calling Leaderboard
+https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html
+We present Berkeley Function-Calling Leaderboard (BFCL), the first comprehensive evaluation on the LLM's ability to call functions and tools. We built this dataset from our learnings, to be representative of most users' function calling use-cases, for example, in agents, as a part of enterprise workflows, etc. We consider function calls of various forms including parallel (one function input ...
+
+A 2025 Comparison of DeepSeek R1, Qwen 2.5 and Claude 3.7
+https://philarchive.org/archive/JOSOVC
+by S Joshi · 2025 · Cited by 1 — Qwen3-Coder leads in coding benchmarks, whereas Claude shows stronger performance on mathematical reasoning tasks. Fig. 2. Cost-performance ...
+
+ToolACE: Winning the Points of LLM Function Calling - OpenReview
+https://openreview.net/forum?id=8EB8k6DdCU
+by W Liu · Cited by 121 — The goal is to create accurate, complex, and diverse data for training LLMs to perform function-calling. Experiments on BFCL and API-Bank demonstrate that ...
+
+DeepPlanning: Benchmarking Long-Horizon Agentic Planning with ...
+https://arxiv.org/html/2601.18137v1
+Jan 26, 2026 ... DeepSeek-AI/DeepSeek-V3.2 (w/o thinking), \columncolorviolet!55.3 ... The berkeley function calling leaderboard (BFCL): From tool use to ...
+
+DeepSeek V3 Function Calling Agent Performance: Syst
+
+--- MSG 40 ---
+# OpenRouter Free Models
+
+#### What are all the free models available?
+
+The document lists 28 free models on OpenRouter. Here are all the free models available:
+
+**High Context Models (200K+):**
+
+- qwen/qwen3-next-80b-a3b-instruct (Qwen, 262K context, Tools)
+- qwen/qwen3-coder (Qwen, 262K context, Tools)
+- stepfun/step-3.5-flash (StepFun, 256K context, Tools)
+- nvidia/nemotron-3-nano-30b-a3b (NVIDIA, 256K context, Tools)
+- openrouter/free (OpenRouter, 200K context)
+
+**Medium Context Models (128K-131K):**
+
+- nousresearch/hermes-3-llama-3.1-405b (Nous Research, 131K, Tools)
+- arcee-ai/trinity-large-preview (Arcee AI, 131K, Tools, Reasoning)
+- nvidia/nemotron-nano-12b-v2-vl (NVIDIA, 128K, Vision, Tools)
+- nvidia/nemotron-nano-9b-v2 (NVIDIA, 128K, Tools)
+- mistralai/mistral-small-3.1-24b-instruct (Mistral, 128K, Vision, Tools)
+- meta-llama/llama-3.3-70b-instruct (Meta, 128K, Tools)
+- google/gemma-3-27b-it (Google, 131K, Vision, Tools)
+- meta-llama/llama-3.2-3b-instruct (Meta, 131K)
+- arcee-ai/trinity-mini (Arcee AI, 131K, Tools)
+- qwen/qwen3-vl-30b-a3b-thinking (Qwen, 131K, Vision, Tools, Reasoning)
+- qwen/qwen3-vl-235b-a22b-thinking (Qwen, 131K, Vision, Tools, Reasoning)
+- openai/gpt-oss-120b (OpenAI, 131K, Tools)
+- openai/gpt-oss-20b (OpenAI, 131K, Tools)
+- z-ai/glm-4.5-air (Z.ai, 131K, Tools)
+- qwen/qwen3-235b-a22b-thinking-2507 (Qwen, 131K, Tools, Reasoning)
+
+**Lower Context Models (33K-41K):**
+
+- cognitivecomputations/dolphin-mistral-24b-venice-edition (Venice, 33K)
+- google/gemma-3-4b-it (Google, 33K, Vision)
+- google/gemma-3-12b-it (Google, 33K, Vision)
+- google/gemma-3n-e2b-it (Google, 8K, Vision)
+- google/gemma-3n-e4b-it (Google, 8K, Vision)
+- qwen/qwen3-4b (Qwen, 41K, Tools)
+- liquid/lfm-2.5-1.2b-thinking (LiquidAI, 33K, Reasoning)
+- liquid/lfm-2.5-1.2b-instruct (LiquidAI, 33K)
+
+#### What are the prices for DeepSeek V3, Qwen, Llama models?
+
+The document does not provide pricing information for DeepSeek V3, Qwen, or Llama models. The document focuses specifical
+
+--- MSG 41 ---
+Nex AGI: DeepSeek V3.1 Nex N1 – Effective Pricing | OpenRouter
+https://openrouter.ai/nex-agi/deepseek-v3.1-nex-n1/pricing
+Effective Pricing for DeepSeek V3.1 Nex N1 · Actual cost per million tokens across providers over the past hour · Weighted Average · Input Price / 1M tokens (7 ...
+
+DeepSeek V3.1 Terminus - API, Providers, Stats - OpenRouter
+https://openrouter.ai/deepseek/deepseek-v3.1-terminus
+Sep 22, 2025 ... Effective Pricing for DeepSeek V3.1 Terminus. Actual cost per million tokens across providers over the past hour ... © 2026 OpenRouter, Inc ...
+
+DeepSeek: DeepSeek V3.2 - Effective Pricing | OpenRouter
+https://openrouter.ai/deepseek/deepseek-v3.2/pricing
+Effective Pricing for DeepSeek V3.2 Actual cost per million tokens across providers over the past hour
+
+DeepSeek V3.2 - API, Providers, Stats - OpenRouter
+https://openrouter.ai/deepseek/deepseek-v3.2
+Dec 1, 2025 — Effective Pricing for DeepSeek V3.2. Actual cost per million tokens across providers over the past hour. Weighted Average. Weighted Avg Input ...
+
+AionLabs: Aion-2.0 – Effective Pricing - OpenRouter
+https://openrouter.ai/aion-labs/aion-2.0/pricing
+Feb 23, 2026 — Weighted Average. Weighted Avg Input Price. $0.800. per 1M tokens. Weighted Avg Output Price. $1.60. per 1M tokens ; AionLabs. $0.800, $1.60, 0.0 ...
+
+NovitaAI - OpenRouter
+https://openrouter.ai/provider/novita
+It extends the DeepSeek-V3 base with a two-phase long-context training process, reaching up to 128K tokens, and uses FP8 microscaling for efficient inference.
+
+DeepSeek V3.1 - API, Providers, Stats
+https://openrouter.ai/deepseek/deepseek-chat-v3.1
+Aug 21, 2025 — Effective Pricing for DeepSeek V3.1. Actual cost per million tokens across providers over the past hour. Apps using DeepSeek V3.1. Top public ...
+
+DeepSeek: DeepSeek V3 - Effective Pricing | OpenRouter
+https://openrouter.ai/deepseek/deepseek-chat/pricing
+Effective pricing across providers for DeepSeek: DeepSeek V3 - DeepSeek-V3 is the latest model from the DeepSeek team, bu
+
+--- MSG 42 ---
+13:from python.helpers.providers import get_providers, FieldOption as ProvidersFO
+56:    chat_model_provider: str
+57:    chat_model_name: str
+58:    chat_model_api_base: str
+59:    chat_model_kwargs: dict[str, Any]
+60:    chat_model_ctx_length: int
+61:    chat_model_ctx_history: float
+62:    chat_model_vision: bool
+63:    chat_model_rl_requests: int
+64:    chat_model_rl_input: int
+65:    chat_model_rl_output: int
+67:    util_model_provider: str
+77:    embed_model_provider: str
+78:    embed_model_name: str
+79:    embed_model_api_base: str
+80:    embed_model_kwargs: dict[str, Any]
+81:    embed_model_rl_requests: int
+82:    embed_model_rl_input: int
+84:    browser_model_provider: str
+205:    chat_providers: list[ModelProvider]
+206:    embedding_providers: list[ModelProvider]
+247:            chat_providers=get_providers("chat"),
+248:            embedding_providers=get_providers("embedding"),
+283:    additional["chat_providers"] = _ensure_option_present(additional.get("chat_providers"), current.get("chat_model_provider"))
+284:    additional["chat_providers"] = _ensure_option_present(additional.get("chat_providers"), current.get("util_model_provider"))
+285:    additional["chat_providers"] = _ensure_option_present(additional.get("chat_providers"), current.get("browser_model_provider"))
+286:    additional["embedding_providers"] = _ensure_option_present(additional.get("embedding_providers"), current.get("embed_model_provider"))
+293:    providers = get_providers("chat") + get_providers("embedding")
+294:    for provider in providers:
+295:        provider_name = provider["value"]
+(venv) root@86857ec31190:/a0/usr/workdir#
+
+--- MSG 43 ---
+Fetching models from OpenRouter...
+Fetched 343 models
+
+============================================================
+OpenRouter Model Catalog - 2026-03-04 15:51
+============================================================
+
+📊 Statistics:
+  Total models: 343
+  Chat models: 245
+  Free models: 28
+  Cheap models (<$0.1/M): 313
+  Function calling: 237
+  Structured output: 261
+  Long context (128K+): 250
+  High context (256K+): 92
+
+🏆 Top Recommendations for A0:
+  Best FREE with tools: 10 models
+  Best CHEAP with tools: 10 models
+  Best function calling: 10 models
+
+💡 Use '--output file.json' to save full catalog
+💡 Use '--format simple' for dropdown-ready format
+💡 Use '--format recommendations' for A0-specific picks
+(venv) root@86857ec31190:/a0/usr/workdir#
+
+--- MSG 44 ---
+Loaded 343 models from cache
+{
+  "options": [
+    {
+      "value": "google/gemini-2.0-flash-lite-001",
+      "label": "Google: Gemini 2.0 Flash Lite [$0.0/K, 1048K ctx] (cheap, tools, json, 1048k)",
+      "model": {
+        "id": "google/gemini-2.0-flash-lite-001",
+        "name": "Google: Gemini 2.0 Flash Lite",
+        "description": "Gemini 2.0 Flash Lite offers a significantly faster time to first token (TTFT) compared to [Gemini F",
+        "price": 7.5e-08,
+        "context_length": 1048576,
+        "has_tools": true,
+        "has_structured_output": true,
+        "family": "gemini",
+        "tags": [
+          "cheap",
+          "tools",
+          "json",
+          "1048k"
+        ]
+      }
+    },
+    {
+      "value": "google/gemini-2.5-flash-lite-preview-09-2025",
+      "label": "Google: Gemini 2.5 Flash Lite Preview 09-2025 [$0.0/K, 1048K ctx] (cheap, tools, json, 1048k)",
+      "model": {
+        "id": "google/gemini-2.5-flash-lite-preview-09-2025",
+        "name": "Google: Gemini 2.5 Flash Lite Preview 09-2025",
+        "description": "Gemini 2.5 Flash-Lite is a lightweight reasoning model in the Gemini 2.5 family, optimized for ultra",
+        "price": 1e-07,
+        "context_length": 1048576,
+        "has_tools": true,
+        "has_structured_output": true,
+        "family": "gemini",
+        "tags": [
+          "cheap",
+          "tools",
+          "json",
+          "1048k"
+        ]
+      }
+    },
+    {
+      "value": "google/gemini-2.5-flash-lite",
+      "label": "Google: Gemini 2.5 Flash Lite [$0.0/K, 1048K ctx] (cheap, tools, json, 1048k)",
+      "model": {
+        "id": "google/gemini-2.5-flash-lite",
+        "name": "Google: Gemini 2.5 Flash Lite",
+        "description": "Gemini 2.5 Flash-Lite is a lightweight reasoning model in the Gemini 2.5 family, optimized for ultra",
+(venv) root@86857ec31190:/a0/usr/workdir#
+
+--- MSG 45 ---
+import yaml
+from python.helpers import files
+from typing import List, Dict, Optional, TypedDict, Literal
+
+ModelType = Literal["chat", "embedding"]
+
+# Type alias for UI option items
+class FieldOption(TypedDict):
+    value: str
+    label: str
+
+class ProviderManager:
+    _instance = None
+    _raw: Optional[Dict[str, List[Dict[str, str]]]] = None  # full provider data
+    _options: Optional[Dict[str, List[FieldOption]]] = None  # UI-friendly list
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def __init__(self):
+        if self._raw is None or self._options is None:
+            self._load_providers()
+
+    def _load_providers(self):
+        """Loads provider configurations from the YAML file and normalises them."""
+        try:
+            config_path = files.get_abs_path("conf/model_providers.yaml")
+            with open(config_path, "r", encoding="utf-8") as f:
+                raw_yaml = yaml.safe_load(f) or {}
+        except (FileNotFoundError, yaml.YAMLError):
+            raw_yaml = {}
+
+        # ------------------------------------------------------------
+        # Normalise the YAML so that internally we always work with a
+        # list-of-dicts [{id, name, ...}] for each provider type.  This
+        # keeps existing callers unchanged while allowing the new nested
+        # mapping format in the YAML (id -> { ... }).
+        # ------------------------------------------------------------
+        normalised: Dict[str, List[Dict[str, str]]] = {}
+
+        for p_type, providers in (raw_yaml or {}).items():
+            items: List[Dict[str, str]] = []
+
+            if isinstance(providers, dict):
+                # New format: mapping of id -> config
+                for pid, cfg in providers.items():
+                    entry = {"id": pid, **(cfg or {})}
+                    items.append(entry)
+            elif isinstance(providers, list):
+                # Legacy list forma
+
+--- MSG 46 ---
+# Supported model providers for Agent Zero
+# ---------------------------------------
+#
+# Each provider type ("chat", "embedding") contains a mapping of provider IDs
+# to their configurations.
+#
+# The provider ID (e.g., "anthropic") is used:
+#  - in the settings UI dropdowns.
+#  - to construct the environment variable for the API key (e.g., ANTHROPIC_API_KEY).
+#
+# Each provider configuration requires:
+#   name:             Human-readable name for the UI.
+#   litellm_provider: The corresponding provider name in LiteLLM.
+#
+# Optional fields:
+#   kwargs:           A dictionary of extra parameters to pass to LiteLLM.
+#                     This is useful for `api_base`, `extra_headers`, etc.
+
+chat:
+  a0_venice:
+    name: Agent Zero API
+    litellm_provider: openai
+    kwargs:
+      api_base: https://llm.agent-zero.ai/v1
+      venice_parameters:
+        include_venice_system_prompt: false
+  anthropic:
+    name: Anthropic
+    litellm_provider: anthropic
+  cometapi:
+    name: CometAPI
+    litellm_provider: cometapi
+  deepseek:
+    name: DeepSeek
+    litellm_provider: deepseek
+  github_copilot:
+    name: GitHub Copilot
+    litellm_provider: github_copilot
+    kwargs:
+      extra_headers:
+        "Editor-Version": "vscode/1.85.1"
+        "Copilot-Integration-Id": "vscode-chat"
+        "Copilot-Vision-Request": "true"
+  google:
+    name: Google
+    litellm_provider: gemini
+  groq:
+    name: Groq
+    litellm_provider: groq
+  huggingface:
+    name: HuggingFace
+    litellm_provider: huggingface
+  lm_studio:
+    name: LM Studio
+    litellm_provider: lm_studio
+  mistral:
+    name: Mistral AI
+    litellm_provider: mistral
+  moonshot:
+    name: Moonshot AI
+    litellm_provider: moonshot
+  ollama:
+    name: Ollama
+    litellm_provider: ollama
+  openai:
+    name: OpenAI
+    litellm_provider: openai
+  azure:
+    name: OpenAI Azure
+    litellm_provider: azure
+  bedrock:
+    name: AWS Bedrock
+    litellm_provider: bedrock
+  openrouter:
+    name: OpenRouter
+    litellm_provider: openrouter
+
+
+--- MSG 47 ---
+/a0/logs/log_20260304_160508.html:<span style="font-style: italic; color: rgb(179, 255, 217); ">I</span><span style="font-style: italic; color: rgb(179, 255, 217); "> see that</span><span style="font-style: italic; color: rgb(179, 255, 217); "> `</span><span style="font-style: italic; color: rgb(179, 255, 217); ">openrouter</span><span style="font-style: italic; color: rgb(179, 255, 217); ">` is already configured</span><span style="font-style: italic; color: rgb(179, 255, 217); "> in</span><span style="font-style: italic; color: rgb(179, 255, 217); "> the</span><span style="font-style: italic; color: rgb(179, 255, 217); "> `</span><span style="font-style: italic; color: rgb(179, 255, 217); ">model_providers.yaml</span><span style="font-style: italic; color: rgb(179, 255, 217); ">` but</span><span style="font-style: italic; color: rgb(179, 255, 217); "> it&#x27;s using `</span><span style="font-style: italic; color: rgb(179, 255, 217); ">lit</span><span style="font-style: italic; color: rgb(179, 255, 217); ">ellm_provider</span><span style="font-style: italic; color: rgb(179, 255, 217); ">: openai`</span><span style="font-style: italic; color: rgb(179, 255, 217); "> with an</span><span style="font-style: italic; color: rgb(179, 255, 217); "> API</span><span style="font-style: italic; color: rgb(179, 255, 217); "> base.</span><span style="font-style: italic; color: rgb(179, 255, 217); "> This is because</span><span style="font-style: italic; color: rgb(179, 255, 217); "> Lite</span><span style="font-style: italic; color: rgb(179, 255, 217); ">LLM doesn</span><span style="font-style: italic; color: rgb(179, 255, 217); ">&#x27;t have</span><span style="font-style: italic; color: rgb(179, 255, 217); "> a native `</span><span style="font-style: italic; color: rgb(179, 255, 217); ">openrouter</span><span style="font-style: italic; color: rgb(179, 255, 217); ">` provider for</span><span style="font-style: italic; color: rgb(179, 255, 217); "> embeddings, but</span><span st
+
+--- MSG 48 ---
+<html>
+  <head>
+    <title>Chat Model</title>
+  </head>
+
+  <body>
+    <div x-data>
+      <template x-if="$store.settings.settings">
+        <div>
+          <div class="section-title">Chat Model</div>
+          <div class="section-description">
+            Selection and settings for main chat model used by Agent Zero
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Chat model provider</div>
+              <div class="field-description">Select provider for main chat model used by Agent Zero</div>
+            </div>
+            <div class="field-control">
+              <select x-model="$store.settings.settings.chat_model_provider">
+                <template x-for="option in $store.settings.additional?.chat_providers" :key="option.value">
+                  <option :value="option.value" :selected="option.value === $store.settings.settings.chat_model_provider" x-text="option.label"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">Chat model name</div>
+              <div class="field-description">Exact name of model from selected provider</div>
+            </div>
+            <div class="field-control">
+              <input type="text" x-model="$store.settings.settings.chat_model_name" />
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">
+              <div class="field-title">API key</div>
+              <div class="field-description">API key for the selected chat model provider</div>
+            </div>
+            <div class="field-control">
+              <input
+                type="text"
+                x-model="$store.settings.settings.api_keys[$store.settings.settings.chat_model_provider]"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <
+
+--- MSG 49 ---
+from python.helpers import openrouter_models
+
+    # Normalize type to match value param type
+    try:
+        if isinstance(value, bool):
+            return env_value.strip().lower() in ('true', '1', 'yes', 'on')  # type: ignore
+---
+              <div class="field-title">Chat model name</div>
+              <div class="field-description">Exact name of model from selected provider</div>
+            </div>
+            <div class="field-control">
+              <template x-if="$store.settings.settings.chat_model_provider === 'openrouter'">
+                <select x-model="$store.settings.settings.chat_model_name" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                  <template x-for="option in $store.settings.additional?.openrouter_models" :key="option.value">
+                    <option :value="option.value" x-text="option.label"></option>
+                  </template>
+                </select>
+              </template>
+              <template x-if="$store.settings.settings.chat_model_provider !== 'openrouter'">
+                <input type="text" x-model="$store.settings.settings.chat_model_name" />
+              </template>
+            </div>
+          </div>
+(venv) root@86857ec31190:/a0/usr/workdir#
+

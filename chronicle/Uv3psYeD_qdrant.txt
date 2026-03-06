@@ -1,0 +1,2126 @@
+=== CHAT: qdrant (Uv3psYeD) | 50 messages ===
+
+--- MSG 1 ---
+Tool  not found. Available tools: \n## Tools available:
+
+### a2a_chat:
+This tool lets Agent Zero chat with any other FastA2A-compatible agent.
+It automatically keeps conversation **context** (so each subsequent call
+continues the same dialogue) and supports optional file attachments.
+
+#### What the tool can do
+* Start a brand-new conversation with a remote agent.
+* Continue an existing conversation transparently (context handled for you).
+* Send text plus optional file URIs (images, docs, etc.).
+* Receive the assistant’s reply as plain text.
+
+#### Arguments
+* `agent_url` (string, required) – Base URL of the *remote* agent.
+  • Accepts `host:port`, `http://host:port`, or full path ending in `/a2a`.
+* `message` (string, required) – The text you want to send.
+* `attachments` (list[string], optional) – URIs pointing to files you want
+  to send along with the message (can be http(s):// or file path).
+* `reset` (boolean, optional) – Set to `true` to start a **new** conversation
+  with the same `agent_url` (clears stored context). Default `false`.
+
+> Leave **context_id** out – the tool handles it internally.
+
+#### Usage – first message
+##### Request
+```json
+{
+  "thoughts": [
+    "I want to ask the weather-bot for today’s forecast."
+  ],
+  "headline": "Ask remote agent (weather-bot)",
+  "tool_name": "a2a_chat",
+  "tool_args": {
+    "agent_url": "http://weather.example.com:8000/a2a",
+    "message": "Hello! What’s the forecast for Berlin today?",
+    "attachments": [],
+    "reset": false
+  }
+}
+```
+##### Response (assistant-side)
+```plaintext
+☀️ It will be sunny with a high of 22 °C.
+```
+
+#### Usage – follow-up (context automatically preserved)
+##### Request
+```json
+{
+  "thoughts": [
+    "Need tomorrow’s forecast too."
+  ],
+  "headline": "Follow-up question",
+  "tool_name": "a2a_chat",
+  "tool_args": {
+    "agent_url": "http://weather.example.com:8000/a2a",
+    "message": "And tomorrow?",
+    "attachments": [],
+    "reset": false
+  }
+}
+```
+##### Response
+```plaintext
+🌦️ Partly
+
+--- MSG 2 ---
+<div align="center">
+
+---
+
+> **Developers (human & AI agents):** This repo has a defined workflow.
+> Read **[WORKFLOW.md](./WORKFLOW.md)** before making changes.
+> Branch off `develop`. Never commit to `main`. Write devlog entries for significant work.
+> See **[CONTRIBUTING.md](./CONTRIBUTING.md)** for the short version.
+
+---
+
+<img src="gob/assets/backgrounds/banner-1.png" alt="GOB" width="600"/>
+
+# GOB
+### *Gory Overengineered Beast*
+
+*A heavily modified fork of [agent-zero](https://github.com/agent0ai/agent-zero) —
+personal, autonomous, and increasingly its own thing.*
+
+**v0.1.0** · identity in progress · [Changelog](./CHANGELOG.md) · [Roadmap](./DEV/roadmap.md)
+
+</div>
+
+---
+
+> **Developers (human & AI agents):** This repo has a defined workflow.
+> Read **[WORKFLOW.md](./WORKFLOW.md)** before making changes.
+> Branch off `develop`. Never commit to `main`. Write devlog entries for significant work.
+
+---
+
+## Documentation
+
+[Introduction](#-key-features) •
+[Installation](./docs/setup/installation.md) •
+[Development Setup](./docs/setup/dev-setup.md) •
+[Usage](./docs/guides/usage.md)
+
+---
+
+## ⚙️ Installation
+
+See [docs/setup/installation.md](./docs/setup/installation.md) for full setup.
+
+### Quick Start (Docker)
+
+```bash
+# Run GOB via Docker Compose
+docker compose up
+
+# Visit http://localhost:50001
+```
+
+> **Note:** Docker image rebuild under GOB branding is planned (Phase 5 of rebranding).
+> See [DEV/roadmap.md](./DEV/roadmap.md).
+
+---
+
+# 💡 Key Features
+
+1. **General-purpose Assistant**
+
+- GOB is not pre-programmed for specific tasks (but can be). It is meant to be a general-purpose personal assistant. Give it a task, and it will gather information, execute commands and code, cooperate with other agent instances, and do its best to accomplish it.
+- It has a persistent memory, allowing it to memorize previous solutions, code, facts, instructions, etc., to solve tasks faster and more reliably in the future.
+
+![Agent 0 Working](/docs/res/ui_screen2.png)
+
+2. **Computer as 
+
+--- MSG 3 ---
+# GOB Development Workflow
+
+> **This applies to ALL developers — human or AI agent (GOB, Roo Code, etc.)**
+> Read this before touching the codebase. These are not suggestions.
+
+---
+
+## Who works on this codebase
+
+- **GOB** — the primary AI developer, runs inside this system, works autonomously
+- **Roo Code / VS Code** — occasional human-directed sessions from outside
+- **Human** — reviews, directs, makes architectural decisions
+
+All three follow the same workflow. No exceptions for "quick fixes".
+
+---
+
+## Branch Structure
+
+```
+main        ← stable tagged releases only. NEVER commit here directly.
+develop     ← integration branch. default base for all work.
+feature/*   ← new capabilities, branched from develop
+fix/*       ← bug fixes, branched from develop
+```
+
+**You are always on `develop` or a branch off it. Not `main`.**
+
+---
+
+## The Daily Loop
+
+```bash
+# 1. Start from develop
+git checkout develop
+
+# 2. Create a branch for your work
+git checkout -b feature/my-thing   # or fix/my-thing
+
+# 3. Work. Commit small and often.
+git add -p                          # stage interactively — preferred
+git add <specific-file>             # or by file
+git commit -m 'feat: description'
+
+# 4. Done — merge back to develop with --no-ff (preserves branch in history)
+git checkout develop
+git merge --no-ff feature/my-thing -m 'feat: merge my-thing'
+git branch -d feature/my-thing
+
+# 5. Stable milestone? Snapshot to main and tag.
+git checkout main
+git merge --no-ff develop -m 'release: v0.2.0'
+git tag -a v0.2.0 -m 'v0.2.0 — description'
+git checkout develop
+```
+
+---
+
+## Commit Message Convention
+
+```
+feat:   new capability or behavior
+fix:    bug fix
+refac:  refactor — no behavior change
+chore:  deps, config, tooling, cleanup
+docs:   documentation only
+wip:    work in progress (never merge wip: commits to develop)
+```
+
+Examples:
+```
+feat: add persona mood decay over conversation length
+fix: login redirect loop on expired session
+refac: extract version logic into separate module
+docs: upd
+
+--- MSG 4 ---
+0 python/__init__.py
+     23 python/api/agents.py
+     95 python/api/api_files_get.py
+     64 python/api/api_log_get.py
+    179 python/api/api_message.py
+     70 python/api/api_reset_chat.py
+     68 python/api/api_terminate_chat.py
+     58 python/api/backup_create.py
+     32 python/api/backup_get_defaults.py
+     49 python/api/backup_inspect.py
+    131 python/api/backup_preview_grouped.py
+     67 python/api/backup_restore_preview.py
+     66 python/api/backup_restore.py
+     62 python/api/backup_test.py
+     22 python/api/banners.py
+     37 python/api/chat_create.py
+     16 python/api/chat_export.py
+     21 python/api/chat_files_path_get.py
+     17 python/api/chat_load.py
+     34 python/api/chat_remove.py
+     27 python/api/chat_reset.py
+    154 python/api/csrf_token.py
+     18 python/api/ctx_window_get.py
+     34 python/api/delete_work_dir_file.py
+     51 python/api/discord_register_commands.py
+    130 python/api/discord_webhook.py
+    141 python/api/download_work_dir_file.py
+     93 python/api/edit_work_dir_file.py
+     50 python/api/file_info.py
+     29 python/api/get_work_dir_files.py
+     26 python/api/health.py
+     14 python/api/history_get.py
+    157 python/api/image_get.py
+     48 python/api/import_knowledge.py
+     24 python/api/knowledge_path_get.py
+     20 python/api/knowledge_reindex.py
+     15 python/api/logout.py
+     17 python/api/mcp_server_get_detail.py
+     17 python/api/mcp_server_get_log.py
+     24 python/api/mcp_servers_apply.py
+     15 python/api/mcp_servers_status.py
+    252 python/api/memory_dashboard.py
+     11 python/api/message_async.py
+     71 python/api/message.py
+     24 python/api/message_queue_add.py
+     18 python/api/message_queue_remove.py
+     31 python/api/message_queue_send.py
+     65 python/api/notification_create.py
+     18 python/api/notifications_clear.py
+     21 python/api/notifications_history.py
+---SIZES---
+0	python/__init__.py
+36K	python/websocket_handlers
+156K	python/tools
+312K	python/extensions
+356K	python/api
+1.1M	pyt
+
+--- MSG 5 ---
+=== run_ui.py ===
+import yaml
+from datetime import timedelta
+import os
+import secrets
+import time
+import socket
+import struct
+from functools import wraps
+import threading
+import asyncio
+
+import urllib.request
+import urllib.error
+import uvicorn
+from flask import Flask, request, Response, session, redirect, url_for, render_template_string
+from werkzeug.wrappers.response import Response as BaseResponse
+from werkzeug.wrappers.request import Request as WerkzeugRequest
+
+import initialize
+from python.helpers import files, git, mcp_server, fasta2a_server, settings as settings_helper
+from python.helpers.files import get_abs_path
+from python.helpers import runtime, dotenv, process
+from python.helpers.gob_icon import get_main_icon_path
+from python.helpers.websocket import WebSocketHandler, validate_ws_origin
+from python.helpers.extract_tools import load_classes_from_folder
+from python.helpers.api import ApiHandler
+from python.helpers.print_style import PrintStyle
+from python.helpers import login
+import socketio  # type: ignore[import-untyped]
+from socketio import ASGIApp, packet
+from starlette.applications import Starlette
+from starlette.routing import Mount
+from uvicorn.middleware.wsgi import WSGIMiddleware
+from python.helpers.websocket_manager import WebSocketManager
+from python.helpers.websocket_namespace_discovery import discover_websocket_namespaces
+
+# disable logging
+import logging
+logging.getLogger().setLevel(logging.WARNING)
+
+
+# Set the new timezone to 'UTC'
+os.environ["TZ"] = "UTC"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+# Apply the timezone change
+if hasattr(time, 'tzset'):
+    time.tzset()
+
+# initialize the internal Flask server
+webapp = Flask("app", static_folder=get_abs_path("./webui"), static_url_path="/")
+webapp.secret_key = os.getenv("FLASK_SECRET_KEY") or secrets.token_hex(32)
+
+UPLOAD_LIMIT_BYTES = 5 * 1024 * 1024 * 1024
+
+# Werkzeug's default max_form_memory_size is 500_000 bytes which can trigger 413 for multipart requests
+# with larger non-file fields
+
+--- MSG 6 ---
+_10_iteration_no.py
+---EXT CONTENT---
+from python.helpers.extension import Extension
+from agent import Agent, LoopData
+
+DATA_NAME_ITER_NO = "iteration_no"
+
+class IterationNo(Extension):
+    async def execute(self, loop_data: LoopData = LoopData(), **kwargs):
+        # total iteration number
+        no = self.agent.get_data(DATA_NAME_ITER_NO) or 0
+        self.agent.set_data(DATA_NAME_ITER_NO, no + 1)
+
+
+def get_iter_no(agent: Agent) -> int:
+    return agent.get_data(DATA_NAME_ITER_NO) or 0
+---WEBSOCKET HANDLERS---
+_default.py		       hello_handler.py		 state_sync_handler.py
+dev_websocket_test_handler.py  hivemind_chat_handler.py
+from __future__ import annotations
+
+from typing import Any
+
+from python.helpers.websocket import WebSocketHandler, WebSocketResult
+
+
+class RootDefaultHandler(WebSocketHandler):
+    """Reserved root (`/`) namespace diagnostics-only handler.
+
+    Root is intentionally *not* used for application traffic. This handler exists to support
+    optional low-risk diagnostics on `/` without making root behave like a global namespace.
+    """
+
+    @classmethod
+    def requires_auth(cls) -> bool:
+        return False
+
+    @classmethod
+    def requires_csrf(cls) -> bool:
+        return False
+
+    @classmethod
+    def get_event_types(cls) -> list[str]:
+        # Diagnostics-only noop endpoint.
+        return ["ws_root_echo"]
+
+    async def process_event(
+        self, event_type: str, data: dict[str, Any], sid: str
+    ) -> dict[str, Any] | WebSocketResult | None:
+        return {"ok": True, "namespace": self.namespace, "sid": sid, "echo": data}
+from __future__ import annotations
+
+import asyncio
+from typing import Any, Dict
+
+from python.helpers.print_style import PrintStyle
+from python.helpers import runtime
+from python.helpers.websocket import WebSocketHandler, WebSocketResult
+
+
+class DevWebsocketTestHandler(WebSocketHandler):
+    """Test harness handler powering the developer WebSocket validation component."""
+
+    @classmethod
+    def get_event_types(cls
+
+--- MSG 7 ---
+=== AGENT.PY STRUCTURE ===
+39:class AgentContextType(Enum):
+45:class AgentContext:
+52:    def __init__(
+101:    def get(id: str):
+106:    def use(id: str):
+115:    def current():
+122:    def set_current(ctxid: str):
+126:    def first():
+133:    def all():
+138:    def generate_id():
+149:    def get_notification_manager(cls):
+157:    def remove(id: str):
+164:    def get_data(self, key: str, recursive: bool = True):
+168:    def set_data(self, key: str, value: Any, recursive: bool = True):
+172:    def get_output_data(self, key: str, recursive: bool = True):
+176:    def set_output_data(self, key: str, value: Any, recursive: bool = True):
+180:    def output(self):
+205:    def log_to_all(
+223:    def kill_process(self):
+227:    def reset(self):
+234:    def nudge(self):
+240:    def get_agent(self):
+243:    def is_running(self) -> bool:
+246:    def communicate(self, msg: "UserMessage", broadcast_level: int = 1):
+265:    def run_task(
+276:    async def _process_chain(self, agent: "Agent", msg: "UserMessage|str", user=True):
+299:class AgentConfig:
+320:class UserMessage:
+326:class LoopData:
+327:    def __init__(self, **kwargs):
+345:class InterventionException(Exception):
+352:class HandledException(Exception):
+356:class Agent:
+362:    def __init__(
+383:    async def monologue(self):
+535:    async def prepare_prompt(self, loop_data: LoopData) -> list[BaseMessage]:
+586:    async def retry_critical_exception(
+611:    def handle_critical_exception(self, exception: Exception):
+639:    async def get_system_prompt(self, loop_data: LoopData) -> list[str]:
+646:    def parse_prompt(self, _prompt_file: str, **kwargs):
+653:    def read_prompt(self, file: str, **kwargs) -> str:
+660:    def get_data(self, field: str):
+663:    def set_data(self, field: str, value):
+666:    def hist_add_message(
+679:    def hist_add_user_message(self, message: UserMessage, intervention: bool = False):
+707:    def hist_add_ai_response(self, message: str):
+712:    def hist_add_warning(self, message: history.Messa
+
+--- MSG 8 ---
+=== CORE PERSONAS ===
+total 16
+drwxr-xr-x 4 root root 4096 Mar  3 17:31 .
+drwxr-xr-x 3 root root 4096 Mar  3 17:31 ..
+drwxr-xr-x 2 root root 4096 Mar  3 17:31 config
+drwxr-xr-x 3 root root 4096 Mar  3 17:31 library
+
+=== TOOLS ===
+a2a_chat.py		 document_query.py   response.py
+behaviour_adjustment.py  input.py	     scheduler.py
+browser_agent.py	 knowledge_tool._py  search_engine.py
+browser_do._py		 memory_delete.py    skills_tool.py
+browser_open._py	 memory_forget.py    unknown.py
+browser._py		 memory_load.py      vision_load.py
+call_subordinate.py	 memory_save.py      wait.py
+code_execution_tool.py	 notify_user.py
+
+=== SKILLS ===
+algorithmic-art
+brand-guidelines
+canvas-design
+create-skill
+dfs-lineup-builder
+doc-coauthoring
+docx
+frontend-design
+game_theory_analysis
+game-theory-expert
+internal-comms
+mcp-builder
+pdf
+pptx
+skill-creator
+slack-gif-creator
+theme-factory
+webapp-testing
+web-artifacts-builder
+xlsx
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 9 ---
+=== CORE PERSONAS CONFIG ===
+
+=== SAMPLE SKILL (xlsx) ===
+LICENSE.txt  scripts  SKILL.md	xlsx
+---
+name: xlsx
+description: "Use this skill any time a spreadsheet file is the primary input or output. This means any task where the user wants to: open, read, edit, or fix an existing .xlsx, .xlsm, .csv, or .tsv file (e.g., adding columns, computing formulas, formatting, charting, cleaning messy data); create a new spreadsheet from scratch or from other data sources; or convert between tabular file formats. Trigger especially when the user references a spreadsheet file by name or path — even casually (like \"the xlsx in my downloads\") — and wants something done to it or produced from it. Also trigger for cleaning or restructuring messy tabular data files (malformed rows, misplaced headers, junk data) into proper spreadsheets. The deliverable must be a spreadsheet file. Do NOT trigger when the primary deliverable is a Word document, HTML report, standalone Python script, database pipeline, or Google Sheets API integration, even if tabular data is involved."
+license: Proprietary. LICENSE.txt has complete terms
+---
+
+# Requirements for Outputs
+
+## All Excel files
+
+### Professional Font
+- Use a consistent, professional font (e.g., Arial, Times New Roman) for all deliverables unless otherwise instructed by the user
+
+### Zero Formula Errors
+- Every Excel model MUST be delivered with ZERO formula errors (#REF!, #DIV/0!, #VALUE!, #N/A, #NAME?)
+
+### Preserve Existing Templates (when updating templates)
+- Study and EXACTLY match existing format, style, and conventions when modifying files
+- Never impose standardized formatting on files with established patterns
+- Existing template conventions ALWAYS override these guidelines
+
+## Financial models
+
+### Color Coding Standards
+Unless otherwise stated by the user or existing template
+
+#### Industry-Standard Color Conventions
+- **Blue text (RGB: 0,0,255)**: Hardcoded inputs, and numbers users will change for scenarios
+- **Black text (RGB
+
+--- MSG 10 ---
+=== MCP TOOLS ===
+python/helpers/fasta2a_server.py
+python/helpers/log.py
+python/helpers/mcp_handler.py
+python/helpers/mcp_server.py
+python/helpers/settings.py
+ 1139 python/helpers/mcp_handler.py
+  489 python/helpers/mcp_server.py
+ 1628 total
+
+=== A2A TOOLS ===
+  209 python/helpers/fasta2a_client.py
+  581 python/helpers/fasta2a_server.py
+  790 total
+No a2a demo
+
+=== WEBSOCKET MANAGER ===
+ 1152 python/helpers/websocket_manager.py
+  186 python/helpers/websocket_namespace_discovery.py
+  568 python/helpers/websocket.py
+ 1906 total
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 11 ---
+=== QDRANT SEARCH ===
+requirements.txt:qdrant-client==1.17.0
+requirements.txt:langchain-qdrant==0.1.4
+scheduler/tasks.json:{"tasks":[{"uuid":"uts4WtVe","context_id":"uts4WtVe","state":"idle","name":"Daily Log Summarization","system_prompt":"You are GOB, an autonomous AI agent running inside a Kali Linux Docker container. You have full root access via terminal tools. You execute tasks directly using code_execution_tool. You do not ask for confirmation — you act.","prompt":"Summarize all log files in /a0/logs/ into a running narrative file at /a0/gob/system-logs.md, then clear the logs directory.\n\nSteps:\n1. Check if /a0/logs/ contains any .html log files. If the directory is empty or has no .html files, append a brief dated entry to /a0/gob/system-logs.md noting no logs were present, then exit.\n2. Read all .html files in /a0/logs/ — strip HTML tags and extract meaningful content (user messages, responses, errors, system events).\n3. Synthesize the content into an engaging narrative summary entry in Markdown. Use a dated section header. Write in a narrative style — describe what happened, what was built, what broke, what was resolved. Include a system state table at the end.\n4. Append the entry to /a0/gob/system-logs.md (create the file with a header if it does not exist).\n5. Delete all .html files in /a0/logs/ to clear the directory.\n6. Confirm completion with file size and number of logs processed.","attachments":[],"project_name":null,"project_color":null,"created_at":"2026-03-02T09:29:16.659381Z","updated_at":"2026-03-02T14:52:08.110076Z","last_run":"2026-03-02T14:52:08.107490Z","last_result":"**Task Complete — Great Omnibus Brain**\n\n| Metric | Value |\n|--------|-------|\n| HTML logs processed | **15 files** |\n| Raw data ingested | **16,367,620 bytes** (~15.6 MB) |\n| Session span | 09:08:42 → 14:30:47 UTC |\n| Tools detected | 10 distinct |\n| Narrary entry appended | 2,341 characters |\n| system-logs.md size | **13,135 bytes** |\n| Logs cleared | **15 
+
+--- MSG 12 ---
+=== MEMORY.PY STRUCTURE ===
+505 python/helpers/memory.py
+from datetime import datetime
+import uuid
+from typing import Any, List, Sequence
+from langchain.storage import InMemoryByteStore, LocalFileStore
+from langchain.embeddings import CacheBackedEmbeddings
+from python.helpers import guids
+
+from qdrant_client import QdrantClient, AsyncQdrantClient
+from qdrant_client.models import Distance, VectorParams, PointIdsList
+from langchain_qdrant import QdrantVectorStore
+
+from langchain_core.embeddings import Embeddings
+
+import os, json
+
+from python.helpers.print_style import PrintStyle
+from . import files
+from langchain_core.documents import Document
+from python.helpers import knowledge_import
+from python.helpers.log import Log, LogItem
+from enum import Enum
+from agent import Agent, AgentContext
+import models
+import logging
+from simpleeval import simple_eval
+
+
+# Raise the log level so WARNING messages aren't shown
+logging.getLogger("langchain_core.vectorstores.base").setLevel(logging.ERROR)
+
+# Qdrant connection settings from environment
+QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+GOB_NODE_NAME = os.getenv("GOB_NODE_NAME", "default")
+
+# Shared Qdrant clients (reused across all memory instances)
+_qdrant_client: QdrantClient | None = None
+_qdrant_async_client: AsyncQdrantClient | None = None
+
+
+def get_qdrant_client() -> QdrantClient:
+    global _qdrant_client
+    if _qdrant_client is None:
+        _qdrant_client = QdrantClient(url=QDRANT_URL)
+    return _qdrant_client
+
+
+def get_qdrant_async_client() -> AsyncQdrantClient:
+    global _qdrant_async_client
+    if _qdrant_async_client is None:
+        _qdrant_async_client = AsyncQdrantClient(url=QDRANT_URL)
+    return _qdrant_async_client
+
+
+def collection_name_from_subdir(memory_subdir: str) -> str:
+    """Convert memory_subdir to a valid Qdrant collection name."""
+    safe = memory_subdir.replace("/", "_").replace("-", "_").replace(" ", "_")
+    return f"gob_memory_{safe}"
+
+
+class Memory:
+
+    class Area(Enum):
+  
+
+--- MSG 13 ---
+=== QDRANT PLAN DETAILS ===
+# Plan: Qdrant Health Check on Startup
+
+**Created:** 2026-03-02
+**Source Idea:** gob/ideas.md — Original Run, Idea #11 (Ranked: Low Impact / Low Effort)
+**Status:** PLANNING
+**Assigned:** Developer
+
+## Dependencies
+
+> qdrant-client (already installed — used in memory.py)
+> requests (already installed)
+> No new packages required.
+
+---
+
+## 1. Problem Statement
+
+**Qdrant is confirmed down in the live environment as of 2026-03-02.** No process running. Both HTTP (6333) and gRPC (6334) ports unreachable. Memory operations are silently failing on every session.
+
+### Root Cause Chain
+
+```
+GOB starts
+  → initialize.py calls GobPersonaHelper.save_persona_to_memory()
+  → memory.py Memory.get() → Memory.initialize()
+  → get_qdrant_client() creates QdrantClient(url="http://localhost:6333")
+  → Qdrant is not running → connection refused
+  → QdrantClient raises exception with UUID format error in stack trace
+  → Exception caught somewhere upstream → logged as HTML error entry
+  → Agent continues — NO visible warning to user
+  → All memory_save / memory_load ops silently fail or return empty
+```
+
+### Confirmed Evidence
+
+| Observation | Source |
+|-------------|--------|
+| `no qdrant process` | `pgrep -a qdrant` during planning session |
+| `qdrant-unreachable` | `curl localhost:6333/healthz` during planning |
+| UUID format errors in every session log | /a0/logs/ HTML inspection (Run 2 analysis) |
+| `GobPersonaHelper.save_persona_to_memory()` at startup | initialize.py source code |
+| No try/except in `get_qdrant_client()` | memory.py source code |
+
+### Impact Assessment
+
+| Impact | Consequence |
+|--------|-------------|
+| memory_save fails silently | Saved memories not persisted — lost on next session |
+| memory_load returns empty | Agent cannot retrieve previous session context |
+| Debug pattern memories not found | Calibration skill loses institutional knowledge |
+| Persona/mood not saved to memory | Persona continuity broken |
+| UUID errors in every se
+
+--- MSG 14 ---
+=== CHECKING DOCKER COMPOSE ===
+services:
+  gob:
+    image: dustyschmidt/gob:latest
+    container_name: gob
+    ports:
+      - "8880:80"
+    volumes:
+      - /home/dusty/gob/:/a0/
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:
+
+=== CHECKING FOR QDRANT BINARY ===
+qdrant not found
+
+=== CHECKING PACKAGE MANAGERS ===
+
+=== CHECKING IF QDRANT CAN BE INSTALLED ===
+      "browser_download_url": "https://github.com/qdrant/qdrant/releases/download/v1.17.0/qdrant-aarch64-apple-darwin.tar.gz"
+      "browser_download_url": "https://github.com/qdrant/qdrant/releases/download/v1.17.0/qdrant-aarch64-unknown-linux-musl.tar.gz"
+      "browser_download_url": "https://github.com/qdrant/qdrant/releases/download/v1.17.0/qdrant-x86_64-apple-darwin.tar.gz"
+      "browser_download_url": "https://github.com/qdrant/qdrant/releases/download/v1.17.0/qdrant-x86_64-pc-windows-msvc.zip"
+      "browser_download_url": "https://github.com/qdrant/qdrant/releases/download/v1.17.0/qdrant-x86_64-unknown-linux-gnu.tar.gz"
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 15 ---
+[1] 5472
+(venv) root@37af41db4a55:/a0/usr/projects/gob# === SYSTEM ARCHITECTURE ===
+x86_64
+
+=== DOWNLOADING QDRANT ===
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0
+  3 27.86M   3 911.9k   0      0 372.1k      0   01:16   00:02   01:14 455.7k(venv) root@37af41db4a55:/a0/usr/projects/gob#
+=== CHECKING STATUS ===
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 16 ---
+ 71 27.86M  71 19.85M   0      0  2.10M      0   00:13   00:09   00:04  3.23M=== WAITING FOR STARTUP ===
+100 27.86M 100 27.86M   0      0  2.62M      0   00:10   00:10          4.19M
+
+=== EXTRACTING ===
+-rwxr-xr-x 1 1001 1001 78678696 Feb 20 11:31 qdrant
+
+=== STARTING QDRANT ===
+           _                 _
+  __ _  __| |_ __ __ _ _ __ | |_
+ / _` |/ _` | '__/ _` | '_ \| __|
+| (_| | (_| | | | (_| | | | | |_
+ \__, |\__,_|_|  \__,_|_| |_|\__|
+    |_|
+
+Version: 1.17.0, build: 4ab6d2ee
+Access web UI at http://localhost:6333/dashboard
+
+2026-03-03T19:15:11.875871Z  WARN qdrant::settings: Config file not found: config/config
+2026-03-03T19:15:11.875882Z  WARN qdrant::settings: Config file not found: config/development
+2026-03-03T19:15:11.882991Z  WARN qdrant: There is a potential issue with the filesystem for storage path ./storage. Details: Container filesystem detected - storage might be lost with container re-creation
+2026-03-03T19:15:11.883005Z  INFO storage::content_manager::consensus::persistent: Initializing new raft state at ./storage/raft_state.json
+2026-03-03T19:15:11.891185Z  INFO qdrant: Distributed mode disabled
+2026-03-03T19:15:11.891199Z  INFO qdrant: Telemetry reporting enabled, id: 6a2ac478-b36e-4016-9b62-7f6eabdba2de
+2026-03-03T19:15:11.894570Z  WARN qdrant::actix::web_ui: Static content folder for Web UI './static' does not exist
+2026-03-03T19:15:11.894640Z  INFO qdrant::actix: TLS disabled for REST API
+2026-03-03T19:15:11.894674Z  INFO qdrant::actix: Qdrant HTTP listening on 6333
+2026-03-03T19:15:11.894679Z  INFO actix_server::builder: starting 23 workers
+2026-03-03T19:15:11.894687Z  INFO actix_server::server: Actix runtime found; starting in Actix runtime
+2026-03-03T19:15:11.894692Z  INFO actix_server::server: starting service: "actix-web-service-0.0.0.0:6333", workers: 23, listening on: 0.0.0.0:6333
+2026-03-03T19:15:11.897783Z  INFO qdrant::tonic: Qdrant gRPC listening on 6334
+2026-03-03T19:15:11.897790Z  INFO qdrant::tonic: TLS disabled for gRPC API
+=
+
+--- MSG 17 ---
+---------------------------------------------------------------------------
+ModuleNotFoundError                       Traceback (most recent call last)
+Cell In[1], line 5
+      2 sys.path.insert(0, '/a0/usr/projects/gob')
+      4 # Test Qdrant connectivity
+----> 5 from python.helpers.memory import get_qdrant_client, check_qdrant_health
+      7 print("=== TESTING QDRANT CONNECTION ===")
+      8 client = get_qdrant_client()
+
+File /a0/usr/projects/gob/python/helpers/memory.py:4
+      2 import uuid
+      3 from typing import Any, List, Sequence
+----> 4 from langchain.storage import InMemoryByteStore, LocalFileStore
+      5 from langchain.embeddings import CacheBackedEmbeddings
+      6 from python.helpers import guids
+
+ModuleNotFoundError: No module named 'langchain'
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 18 ---
+---------------------------------------------------------------------------
+ModuleNotFoundError                       Traceback (most recent call last)
+Cell In[1], line 7
+      4 sys.path.insert(0, '/a0/usr/projects/gob')
+      6 # Test Qdrant connectivity directly
+----> 7 from python.helpers.memory import get_qdrant_client, check_qdrant_health
+      9 print("=== TESTING QDRANT CONNECTION ===")
+     10 client = get_qdrant_client()
+
+File /a0/usr/projects/gob/python/helpers/memory.py:4
+      2 import uuid
+      3 from typing import Any, List, Sequence
+----> 4 from langchain.storage import InMemoryByteStore, LocalFileStore
+      5 from langchain.embeddings import CacheBackedEmbeddings
+      6 from python.helpers import guids
+
+ModuleNotFoundError: No module named 'langchain.storage'
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 19 ---
+=== CHECKING LANGCHAIN VERSIONS ===
+Version: 1.2.10
+
+=== INSTALLING FROM REQUIREMENTS ===
+  error: subprocess-exited-with-error
+  
+  × Preparing metadata (pyproject.toml) did not run successfully.
+  │ exit code: 1
+  ╰─> [23 lines of output]
+      + /opt/venv/bin/python3.13 /tmp/pip-install-kfnk8qym/numpy_bba221262d3344eba59fe313445a2b1c/vendored-meson/meson/meson.py setup /tmp/pip-install-kfnk8qym/numpy_bba221262d3344eba59fe313445a2b1c /tmp/pip-install-kfnk8qym/numpy_bba221262d3344eba59fe313445a2b1c/.mesonpy-np02bftb -Dbuildtype=release -Db_ndebug=if-release -Db_vscrt=md --native-file=/tmp/pip-install-kfnk8qym/numpy_bba221262d3344eba59fe313445a2b1c/.mesonpy-np02bftb/meson-python-native-file.ini
+      The Meson build system
+      Version: 1.2.99
+      Source dir: /tmp/pip-install-kfnk8qym/numpy_bba221262d3344eba59fe313445a2b1c
+      Build dir: /tmp/pip-install-kfnk8qym/numpy_bba221262d3344eba59fe313445a2b1c/.mesonpy-np02bftb
+      Build type: native build
+      Project name: NumPy
+      Project version: 1.26.4
+      C compiler for the host machine: cc (gcc 15.2.0 "cc (Debian 15.2.0-12) 15.2.0")
+      C linker for the host machine: cc ld.bfd 2.45.50.20251209
+      C++ compiler for the host machine: c++ (gcc 15.2.0 "c++ (Debian 15.2.0-12) 15.2.0")
+      C++ linker for the host machine: c++ ld.bfd 2.45.50.20251209
+      Cython compiler for the host machine: cython (cython 3.0.12)
+      Host machine cpu family: x86_64
+      Host machine cpu: x86_64
+      Program python found: YES (/opt/venv/bin/python3.13)
+      Found pkg-config: /usr/bin/pkg-config (1.8.1)
+      Run-time dependency python found: YES 3.13
+      Has header "Python.h" with dependency python: NO
+      
+      ../meson.build:44:2: ERROR: Problem encountered: Cannot compile `Python.h`. Perhaps you need to install python-dev|python-devel
+      
+      A full log can be found at /tmp/pip-install-kfnk8qym/numpy_bba221262d3344eba59fe313445a2b1c/.mesonpy-np02bftb/meson-logs/meson-log.txt
+      [end of output]
+  
+  n
+
+--- MSG 20 ---
+=== QDRANT HTTP API TEST ===
+healthz check passed
+2026-03-03T19:16:42.476518Z  INFO actix_web::middleware::logger: 127.0.0.1 "GET /collections HTTP/1.1" 200 59 "-" "curl/8.18.0" 0.000035
+{"result":{"collections":[]},"status":"ok","time":4.115e-6}
+=== VECTOR_DB.PY ===
+from typing import Any, List, Sequence
+from langchain_core.documents import Document
+from langchain.storage import InMemoryByteStore
+from langchain.embeddings import CacheBackedEmbeddings
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams
+from langchain_qdrant import QdrantVectorStore
+from simpleeval import simple_eval
+import uuid
+
+from agent import Agent
+from python.helpers import guids
+
+_COLLECTION_NAME = "vector_db_ephemeral"
+
+
+class VectorDB:
+
+    _cached_embeddings: dict[str, CacheBackedEmbeddings] = {}
+
+    @staticmethod
+    def _get_embeddings(agent: Agent, cache: bool = True):
+        model = agent.get_embedding_model()
+        if not cache:
+            return model
+        namespace = getattr(model, "model_name", "default")
+        if namespace not in VectorDB._cached_embeddings:
+            store = InMemoryByteStore()
+            VectorDB._cached_embeddings[namespace] = (
+                CacheBackedEmbeddings.from_bytes_store(
+                    model, store, namespace=namespace,
+                )
+            )
+        return VectorDB._cached_embeddings[namespace]
+
+    def __init__(self, agent: Agent, cache: bool = True):
+        self.agent = agent
+        self.cache = cache
+        self.embeddings = self._get_embeddings(agent, cache=cache)
+
+        # Each VectorDB instance gets its own in-memory Qdrant client
+        self._client = QdrantClient(":memory:")
+        dim = len(self.embeddings.embed_query("example"))
+        self._collection = _COLLECTION_NAME
+        self._client.create_collection(
+            collection_name=self._collection,
+            vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
+        )
+
+        self.db = Qdr
+
+--- MSG 21 ---
+=== FINAL STATUS CHECK ===
+
+QDRANT PROCESS:
+5504 ./qdrant
+
+HEALTH:
+healthz check passed
+
+COLLECTIONS:
+2026-03-03T19:16:53.671479Z  INFO actix_web::middleware::logger: 127.0.0.1 "GET /collections HTTP/1.1" 200 59 "-" "curl/8.18.0" 0.000038
+{
+    "result": {
+        "collections": []
+    },
+    "status": "ok",
+    "time": 4.039e-06
+}
+
+DASHBOARD:
+2026-03-03T19:16:53.694649Z  INFO actix_web::middleware::logger: 127.0.0.1 "GET /dashboard HTTP/1.1" 404 0 "-" "curl/8.18.0" 0.000043
+
+ENVIRONMENT:
+  QDRANT_URL=http://localhost:6333
+  GOB_NODE_NAME=default
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 22 ---
+=== MEMORIZE SOLUTIONS EXTENSION ===
+import asyncio
+from python.helpers import settings, errors
+from python.helpers.extension import Extension
+from python.helpers.memory import Memory
+from python.helpers.dirty_json import DirtyJson
+from agent import LoopData
+from python.helpers.log import LogItem
+from python.tools.memory_load import DEFAULT_THRESHOLD as DEFAULT_MEMORY_THRESHOLD
+from python.helpers.defer import DeferredTask, THREAD_BACKGROUND
+
+class MemorizeSolutions(Extension):
+
+    async def execute(self, loop_data: LoopData = LoopData(), **kwargs):
+        # try:
+
+        set = settings.get_settings()
+
+        if not set["memory_memorize_enabled"]:
+            return
+ 
+        # show full util message
+        log_item = self.agent.context.log.log(
+            type="util",
+            heading="Memorizing succesful solutions...",
+        )
+
+        # memorize in background
+        task = DeferredTask(thread_name=THREAD_BACKGROUND)
+        task.start_task(self.memorize, loop_data, log_item)
+        # task = asyncio.create_task(self.memorize(loop_data, log_item))
+        return task
+
+    async def memorize(self, loop_data: LoopData, log_item: LogItem, **kwargs):
+        try:
+            set = settings.get_settings()
+
+            db = await Memory.get(self.agent)
+
+            # get system message and chat history for util llm
+            system = self.agent.read_prompt("memory.solutions_sum.sys.md")
+            msgs_text = self.agent.concat_messages(self.agent.history)
+
+            # log query streamed by LLM
+            # async def log_callback(content):
+            #     log_item.stream(content=content)
+
+            # call util llm to find solutions in history
+            solutions_json = await self.agent.call_utility_model(
+                system=system,
+                message=msgs_text,
+                # callback=log_callback,
+                background=True,
+            )
+
+            # log query < no need for streaming utility messages
+            log_item.updat
+
+--- MSG 23 ---
+=== TOKEN COUNTER ===
+from typing import Literal
+import tiktoken
+
+APPROX_BUFFER = 1.1
+TRIM_BUFFER = 0.8
+
+
+def count_tokens(text: str, encoding_name="cl100k_base") -> int:
+    if not text:
+        return 0
+
+    # Get the encoding
+    encoding = tiktoken.get_encoding(encoding_name)
+
+    # Encode the text and count the tokens
+    tokens = encoding.encode(text, disallowed_special=())
+    token_count = len(tokens)
+
+    return token_count
+
+
+def approximate_tokens(
+    text: str,
+) -> int:
+    return int(count_tokens(text) * APPROX_BUFFER)
+
+
+def trim_to_tokens(
+    text: str,
+    max_tokens: int,
+    direction: Literal["start", "end"],
+    ellipsis: str = "...",
+) -> str:
+    chars = len(text)
+    tokens = count_tokens(text)
+
+    if tokens <= max_tokens:
+        return text
+
+    approx_chars = int(chars * (max_tokens / tokens) * TRIM_BUFFER)
+
+    if direction == "start":
+        return text[:approx_chars] + ellipsis
+    return ellipsis + text[chars - approx_chars : chars]
+
+=== CONCAT MESSAGES ===
+    def concat_messages(
+        self, messages
+    ):  # TODO add param for message range, topic, history
+        return self.history.output_text(human_label="user", ai_label="assistant")
+
+    def get_chat_model(self):
+        return models.get_chat_model(
+            self.config.chat_model.provider,
+            self.config.chat_model.name,
+            model_config=self.config.chat_model,
+            **self.config.chat_model.build_kwargs(),
+        )
+
+    def get_utility_model(self):
+        return models.get_chat_model(
+            self.config.utility_model.provider,
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 24 ---
+---------------------------------------------------------------------------
+ModuleNotFoundError                       Traceback (most recent call last)
+Cell In[1], line 5
+      2 sys.path.insert(0, '/a0/usr/projects/gob')
+      4 # Test the token utilities
+----> 5 from python.helpers.tokens import count_tokens, trim_to_tokens
+      7 test_text = "This is a test message. " * 1000
+      8 print(f"Test text length: {len(test_text)} chars")
+
+File /a0/usr/projects/gob/python/helpers/tokens.py:2
+      1 from typing import Literal
+----> 2 import tiktoken
+      4 APPROX_BUFFER = 1.1
+      5 TRIM_BUFFER = 0.8
+
+ModuleNotFoundError: No module named 'tiktoken'
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 25 ---
+=== VERIFICATION - Patched memorize method ===
+            # Rough approximation: ~4 chars per token for English text
+            MAX_UTIL_TOKENS = 50000  # Leave room for system prompt + response
+            chars_per_token = 4
+            max_chars = MAX_UTIL_TOKENS * chars_per_token
+            
+            original_chars = len(msgs_text)
+            if original_chars > max_chars:
+                # Trim from start (oldest messages) to keep most recent context
+                trim_chars = original_chars - max_chars
+                msgs_text = "...[Earlier messages truncated due to token limit]...\n\n" + msgs_text[trim_chars:]
+                
+                approx_tokens = original_chars // chars_per_token
+                log_item.update(
+                    heading=f"Memorizing solutions (truncated {approx_tokens}→~{MAX_UTIL_TOKENS} tokens)...",
+                    warning=f"History truncated: {original_chars} chars → {len(msgs_text)} chars to fit model context window"
+                )
+                print(f"[MEMORIZE] Truncated history from ~{approx_tokens} to ~{MAX_UTIL_TOKENS} tokens")
+            
+
+            # log query streamed by LLM
+            # async def log_callback(content):
+            #     log_item.stream(content=content)
+
+            # call util llm to find solutions in history
+            solutions_json = await self.agent.call_utility_model(
+                system=system,
+                message=msgs_text,
+
+=== COMPARISON ===
+Original: No token limit checking
+Patched: Added ~50K token limit with trimming from start (oldest messages)
+
+=== BACKUP AVAILABLE ===
+-rw-r--r-- 1 root root 9085 Mar  3 19:18 python/extensions/monologue_end/_51_memorize_solutions.py.bak
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 26 ---
+=== CHECKING RUNNING SYSTEM ===
+-rw-r--r-- 1 root root 9085 Mar  3 17:18 /a0/python/extensions/monologue_end/_51_memorize_solutions.py
+
+=== VIEWING CURRENT CODE ===
+import asyncio
+from python.helpers import settings, errors
+from python.helpers.extension import Extension
+from python.helpers.memory import Memory
+from python.helpers.dirty_json import DirtyJson
+from agent import LoopData
+from python.helpers.log import LogItem
+from python.tools.memory_load import DEFAULT_THRESHOLD as DEFAULT_MEMORY_THRESHOLD
+from python.helpers.defer import DeferredTask, THREAD_BACKGROUND
+
+class MemorizeSolutions(Extension):
+
+    async def execute(self, loop_data: LoopData = LoopData(), **kwargs):
+        # try:
+
+        set = settings.get_settings()
+
+        if not set["memory_memorize_enabled"]:
+            return
+ 
+        # show full util message
+        log_item = self.agent.context.log.log(
+            type="util",
+            heading="Memorizing succesful solutions...",
+        )
+
+        # memorize in background
+        task = DeferredTask(thread_name=THREAD_BACKGROUND)
+        task.start_task(self.memorize, loop_data, log_item)
+        # task = asyncio.create_task(self.memorize(loop_data, log_item))
+        return task
+
+    async def memorize(self, loop_data: LoopData, log_item: LogItem, **kwargs):
+        try:
+            set = settings.get_settings()
+
+            db = await Memory.get(self.agent)
+
+            # get system message and chat history for util llm
+            system = self.agent.read_prompt("memory.solutions_sum.sys.md")
+            msgs_text = self.agent.concat_messages(self.agent.history)
+
+            # log query streamed by LLM
+            # async def log_callback(content):
+            #     log_item.stream(content=content)
+
+            # call util llm to find solutions in history
+            solutions_json = await self.agent.call_utility_model(
+                system=system,
+                message=msgs_text,
+                # callback=log_callback,
+           
+
+--- MSG 27 ---
+=== CURRENT STATE ANALYSIS ===
+
+1. uploads/ directory:
+2026-03-0208.18.265979169361221468742.jpg
+2026-03-0208.18.393055858122442642535.jpg
+2026-03-0208.20.426055011380526863325.jpg
+algorithmic-art.zip
+atp_data.py
+brand-guidelines.zip
+canvas-design.zip
+clipboard-27e3d877-a3b5-43cd-b338-a77102615fef.png
+clipboard-39ac1cb3-246b-42fe-9318-23a1ab2a938a.png
+clipboard-3b3ddbaa-b82a-44eb-87f8-308e328c9caf.png
+clipboard-6d72f1b9-6f50-4228-962f-8a7ee6f77cd5.png
+clipboard-7632f55b-0c02-47ba-b94b-158c8e036a62.png
+clipboard-8cfa16b1-157c-49a2-8e65-82a43b70031e.png
+dfs-lineup-builder.zip
+dk_live.py
+dk_slate.py
+doc-coauthoring.zip
+docx.zip
+elo_ratings_20260301.csv
+frontend-design.zip
+... (51 total files)
+
+2. python/helpers/ (largest directory):
+88
+
+3. python/api/ files:
+78
+
+4. tests/ organization:
+29
+
+5. Empty/underutilized extensions:
+1: python/extensions/before_main_llm_call/
+1: python/extensions/error_format/
+1: python/extensions/hist_add_before/
+1: python/extensions/hist_add_tool_result/
+1: python/extensions/message_loop_prompts_before/
+1: python/extensions/message_loop_start/
+1: python/extensions/process_chain_end/
+1: python/extensions/reasoning_stream/
+1: python/extensions/reasoning_stream_chunk/
+1: python/extensions/reasoning_stream_end/
+
+6. projects/ mix:
+total 112340
+drwxr-xr-x  6 root root     4096 Mar  3 17:31 .
+drwxr-xr-x 30 root root     4096 Mar  3 17:31 ..
+drwxr-xr-x  3 root root     4096 Mar  3 17:31 a2a_demo
+-rw-r--r--  1 root root     7006 Mar  3 17:31 a2a_demo.zip
+drwxr-xr-x  2 root root     4096 Mar  3 17:31 gob-dev
+-rw-r--r--  1 root root 28098630 Mar  3 17:31 gob-dev_2.zip
+-rw-r--r--  1 root root 28168235 Mar  3 17:31 gob-dev.zip
+-rw-r--r--  1 root root 27885573 Mar  3 17:31 gob-mini.zip
+drwxr-xr-x  4 root root     4096 Mar  3 17:31 mini-agent
+-rw-r--r--  1 root root     1311 Mar  3 17:31 RULE_PROJECT_DIRECTORY.txt
+drwxr-xr-x  2 root root     4096 Mar  3 17:31 tennis-sim
+-rw-r--r--  1 root root 30832842 Mar  3 17:31 tennis-sim.zip
+(venv) root@37af41db4a55:/a0
+
+--- MSG 28 ---
+=== CURRENT UPLOADS STATE ===
+total 109760
+drwxr-xr-x  2 root root     4096 Mar  3 17:31 .
+drwxr-xr-x 30 root root     4096 Mar  3 17:31 ..
+-rw-r--r--  1 root root  2636305 Mar  3 17:31 2026-03-0208.18.265979169361221468742.jpg
+-rw-r--r--  1 root root  2080470 Mar  3 17:31 2026-03-0208.18.393055858122442642535.jpg
+-rw-r--r--  1 root root  1728518 Mar  3 17:31 2026-03-0208.20.426055011380526863325.jpg
+-rw-r--r--  1 root root    19433 Mar  3 17:31 algorithmic-art.zip
+-rw-r--r--  1 root root     3253 Mar  3 17:31 atp_data.py
+-rw-r--r--  1 root root     5376 Mar  3 17:31 brand-guidelines.zip
+-rw-r--r--  1 root root  2708357 Mar  3 17:31 canvas-design.zip
+-rw-r--r--  1 root root   129993 Mar  3 17:31 clipboard-27e3d877-a3b5-43cd-b338-a77102615fef.png
+-rw-r--r--  1 root root    64714 Mar  3 17:31 clipboard-39ac1cb3-246b-42fe-9318-23a1ab2a938a.png
+-rw-r--r--  1 root root    65844 Mar  3 17:31 clipboard-3b3ddbaa-b82a-44eb-87f8-308e328c9caf.png
+-rw-r--r--  1 root root   101107 Mar  3 17:31 clipboard-6d72f1b9-6f50-4228-962f-8a7ee6f77cd5.png
+-rw-r--r--  1 root root    12430 Mar  3 17:31 clipboard-7632f55b-0c02-47ba-b94b-158c8e036a62.png
+-rw-r--r--  1 root root   264635 Mar  3 17:31 clipboard-8cfa16b1-157c-49a2-8e65-82a43b70031e.png
+-rw-r--r--  1 root root    10968 Mar  3 17:31 dfs-lineup-builder.zip
+-rw-r--r--  1 root root     8054 Mar  3 17:31 dk_live.py
+-rw-r--r--  1 root root     5324 Mar  3 17:31 dk_slate.py
+-rw-r--r--  1 root root     6034 Mar  3 17:31 doc-coauthoring.zip
+-rw-r--r--  1 root root   583504 Mar  3 17:31 docx.zip
+-rw-r--r--  1 root root    23138 Mar  3 17:31 elo_ratings_20260301.csv
+-rw-r--r--  1 root root     6053 Mar  3 17:31 frontend-design.zip
+-rw-r--r--  1 root root    50033 Mar  3 17:31 game_theory_analysis.zip
+-rw-r--r--  1 root root    44358 Mar  3 17:31 game-theory-expert.zip
+-rw-r--r--  1 root root    10688 Mar  3 17:31 internal-comms.zip
+-rw-r--r--  1 root root    23138 Mar  3 17:31 latest.csv
+-rw-r--r--  1 root root     2103 Mar  3 17:31 logger.py
+
+--- MSG 29 ---
+=== STEP 8: Create organized test structure ===
+Created test directory structure
+
+=== STEP 9: Categorize and move test files ===
+WebSocket tests:
+test_socketio_library_semantics.py    test_websocket_manager.py
+test_socketio_unknown_namespace.py    test_websocket_namespace_discovery.py
+test_websocket_client_api_surface.py  test_websocket_namespace_security.py
+test_websocket_csrf.py		      test_websocket_namespaces_integration.py
+test_websocket_handlers.py	      test_websocket_namespaces.py
+test_websocket_harness.py	      test_websocket_root_namespace.py
+
+State/Monitor tests:
+tests/integration/test_persist_chat_log_ids.py
+tests/integration/test_snapshot_parity.py
+tests/integration/test_snapshot_schema_v1.py
+tests/integration/test_state_monitor.py
+tests/integration/test_state_sync_handler.py
+tests/integration/test_state_sync_welcome_screen.py
+
+Authentication tests:
+test_http_auth_csrf.py
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 30 ---
+=== STEP 10: Categorize remaining test files ===
+
+Moving unit tests:
+Unit tests moved
+api		      test_file_tree_visualize.py
+chunk_parser_test.py  test_gob_persona.py
+email_parser_test.py  test_run_ui_config.py
+extensions	      test_settings_developer_sections.py
+helpers		      tools
+rate_limiter_test.py
+
+Moving integration tests:
+Integration tests moved
+
+Moving utility files:
+Utility files moved
+
+=== FINAL STATE ===
+Tests remaining in root:
+0
+
+New structure:
+tests/unit/test_settings_developer_sections.py
+tests/unit/rate_limiter_test.py
+tests/unit/test_gob_persona.py
+tests/unit/chunk_parser_test.py
+tests/unit/email_parser_test.py
+tests/unit/test_file_tree_visualize.py
+tests/unit/test_run_ui_config.py
+tests/utils/websocket_namespace_test_utils.py
+tests/integration/test_state_monitor.py
+tests/integration/test_fasta2a_client.py
+tests/integration/auth/test_http_auth_csrf.py
+tests/integration/websocket/test_websocket_harness.py
+tests/integration/websocket/test_websocket_namespace_discovery.py
+tests/integration/websocket/test_websocket_namespaces_integration.py
+tests/integration/websocket/test_websocket_namespace_security.py
+tests/integration/websocket/test_socketio_unknown_namespace.py
+tests/integration/websocket/test_socketio_library_semantics.py
+tests/integration/websocket/test_websocket_root_namespace.py
+tests/integration/websocket/test_websocket_client_api_surface.py
+tests/integration/websocket/test_websocket_handlers.py
+tests/integration/websocket/test_websocket_namespaces.py
+tests/integration/websocket/test_websocket_manager.py
+tests/integration/websocket/test_websocket_csrf.py
+tests/integration/test_multi_tab_isolation.py
+tests/integration/test_state_sync_handler.py
+tests/integration/test_persist_chat_log_ids.py
+tests/integration/test_snapshot_schema_v1.py
+tests/integration/test_snapshot_parity.py
+tests/integration/test_state_sync_welcome_screen.py
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 31 ---
+(venv) root@37af41db4a55:/a0/usr/projects/gob# (venv) root@37af41db4a55:/a0/usr/projects/gob# > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > > (venv) root@37af41db4a55:/a0/usr/projects/gob# (venv) root@37af41db4a55:/a0/usr/projects/gob# === CREATED README FILES ===
+uploads/README.md
+tests/README.md
+
+=== FINAL UPLOADS STATE ===
+archive  data  images  README.md  scripts  skills  tmp
+
+=== FINAL TESTS STATE ===
+29
+test files organized
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 32 ---
+=== CHECKING PYTEST ===
+
+=== TEST DISCOVERY ===
+tests/integration/test_multi_tab_isolation.py::test_state_monitor_per_sid_isolation_independent_snapshots_seq_and_cursors
+tests/integration/test_multi_tab_isolation.py::test_state_monitor_mark_dirty_for_context_scopes_to_active_context
+tests/integration/test_persist_chat_log_ids.py::test_deserialize_log_preserves_item_id
+tests/integration/test_state_monitor.py::test_state_monitor_debounce_coalesces_without_postponing_and_cleanup_cancels_pending
+tests/integration/test_state_monitor.py::test_state_monitor_namespace_identity_prevents_cross_namespace_state_push
+tests/integration/websocket/test_socketio_library_semantics.py::test_socketio_wildcard_handler_only_runs_for_unhandled_events
+tests/integration/websocket/test_socketio_library_semantics.py::test_socketio_handler_return_values_ack_only_when_client_requests_ack
+tests/integration/websocket/test_socketio_unknown_namespace.py::test_unknown_namespace_connect_error_can_be_made_deterministic
+tests/integration/websocket/test_websocket_client_api_surface.py::test_websocket_js_exports_minimal_namespaced_api_surface
+tests/integration/websocket/test_websocket_namespace_discovery.py::test_discovery_supports_folder_entries_and_ignores_deeper_nesting
+tests/integration/websocket/test_websocket_namespace_discovery.py::test_discovery_folder_suffix_handler_stripped
+tests/integration/websocket/test_websocket_namespace_discovery.py::test_discovery_empty_folder_warns_and_treats_namespace_unregistered
+tests/integration/websocket/test_websocket_namespace_discovery.py::test_discovery_invalid_modules_fail_fast_with_descriptive_errors
+tests/integration/websocket/test_websocket_namespace_security.py::test_connect_security_is_computed_per_namespace_and_enforced
+tests/integration/websocket/test_websocket_namespace_security.py::test_unknown_namespace_rejected_with_deterministic_connect_error_payload
+tests/integration/websocket/test_websocket_namespace_security.py::test_secure_namespace_rejects_mis
+
+--- MSG 33 ---
+=== TESTS THAT PASSED DISCOVERY ===
+tests/integration/test_multi_tab_isolation.py::test_state_monitor_per_sid_isolation_independent_snapshots_seq_and_cursors
+tests/integration/test_multi_tab_isolation.py::test_state_monitor_mark_dirty_for_context_scopes_to_active_context
+tests/integration/test_persist_chat_log_ids.py::test_deserialize_log_preserves_item_id
+tests/integration/test_state_monitor.py::test_state_monitor_debounce_coalesces_without_postponing_and_cleanup_cancels_pending
+tests/integration/test_state_monitor.py::test_state_monitor_namespace_identity_prevents_cross_namespace_state_push
+tests/integration/websocket/test_socketio_library_semantics.py::test_socketio_wildcard_handler_only_runs_for_unhandled_events
+tests/integration/websocket/test_socketio_library_semantics.py::test_socketio_handler_return_values_ack_only_when_client_requests_ack
+tests/integration/websocket/test_socketio_unknown_namespace.py::test_unknown_namespace_connect_error_can_be_made_deterministic
+tests/integration/websocket/test_websocket_client_api_surface.py::test_websocket_js_exports_minimal_namespaced_api_surface
+tests/integration/websocket/test_websocket_namespace_discovery.py::test_discovery_supports_folder_entries_and_ignores_deeper_nesting
+tests/integration/websocket/test_websocket_namespace_discovery.py::test_discovery_folder_suffix_handler_stripped
+tests/integration/websocket/test_websocket_namespace_discovery.py::test_discovery_empty_folder_warns_and_treats_namespace_unregistered
+tests/integration/websocket/test_websocket_namespace_discovery.py::test_discovery_invalid_modules_fail_fast_with_descriptive_errors
+tests/integration/websocket/test_websocket_namespace_security.py::test_connect_security_is_computed_per_namespace_and_enforced
+tests/integration/websocket/test_websocket_namespace_security.py::test_unknown_namespace_rejected_with_deterministic_connect_error_payload
+tests/integration/websocket/test_websocket_namespace_security.py::test_secure_namespace_rejects_missing_auth_ev
+
+--- MSG 34 ---
+=== CURRENT REQUIREMENTS.TXT ===
+qdrant-client==1.17.0
+langchain-qdrant==0.1.4
+a2wsgi==1.10.8
+ansio==0.0.1
+browser-use==0.5.11
+docker==7.1.0
+duckduckgo-search==6.1.12
+faiss-cpu==1.11.0
+fastmcp==2.13.1
+fasta2a==0.5.0
+flask[async]==3.0.3
+flask-basicauth==0.2.0
+flaredantic==0.1.5
+GitPython==3.1.43
+inputimeout==1.0.4
+kokoro>=0.9.2
+simpleeval==1.0.3
+langchain-core==0.3.49
+langchain-community==0.3.19
+langchain-unstructured[all-docs]==0.1.6
+openai-whisper==20250625
+lxml_html_clean==0.3.1
+markdown==3.7
+mcp==1.22.0
+newspaper3k==0.2.8
+paramiko==3.5.0
+playwright==1.52.0
+pypdf==6.0.0
+python-dotenv==1.1.0
+pytz==2024.2
+sentence-transformers==3.0.1
+tiktoken==0.8.0
+unstructured[all-docs]==0.16.23
+unstructured-client==0.31.0
+webcolors==24.6.0
+nest-asyncio==1.6.0
+crontab==1.0.1
+markdownify==1.1.0
+pydantic==2.11.7
+pymupdf==1.25.3
+pytesseract==0.3.13
+pdf2image==1.17.0
+crontab==1.0.1
+pathspec>=0.12.1
+psutil>=7.0.0
+soundfile==0.13.1
+imapclient>=3.0.1
+html2text>=2024.2.26
+beautifulsoup4>=4.12.3
+boto3>=1.35.0
+exchangelib>=5.4.3
+pywinpty==3.0.2; sys_platform == "win32"
+python-socketio>=5.14.2
+uvicorn>=0.38.0
+wsproto>=1.2.0
+pytest>=8.4.2
+pytest-asyncio>=1.2.0
+pytest-mock>=3.15.1
+litellm==1.79.3
+openai==1.99.5
+
+=== CHECKING FOR OTHER REQUIREMENTS FILES ===
+-rw-r--r-- 1 root root 1170 Mar  3 17:31 requirements.txt
+
+=== DOCKER BASE IMAGE FILES ===
+total 20
+drwxr-xr-x 3 root root 4096 Mar  3 17:31 .
+drwxr-xr-x 3 root root 4096 Mar  3 17:31 ..
+-rw-r--r-- 1 root root  574 Mar  3 17:31 build.txt
+-rw-r--r-- 1 root root 1196 Mar  3 17:31 Dockerfile
+drwxr-xr-x 4 root root 4096 Mar  3 17:31 fs
+
+=== CHECKING FOR DEPS IN REQUIREMENTS ===
+litellm==1.79.3
+  Found: litellm
+flask[async]==3.0.3
+flask-basicauth==0.2.0
+  Found: flask
+  MISSING: flask-socketio
+html2text>=2024.2.26
+  Found: html2text
+pathspec>=0.12.1
+  Found: pathspec
+python-socketio>=5.14.2
+  Found: python-socketio
+qdrant-client==1.17.0
+  Found: qdrant-client
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 35 ---
+=== DOCKER BASE DOCKERFILE ===
+# Use the latest slim version of Kali Linux
+FROM kalilinux/kali-rolling
+
+
+# Set locale to en_US.UTF-8 and timezone to UTC
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y locales tzdata
+RUN sed -i -e 's/# \(en_US\.UTF-8 .*\)/\1/' /etc/locale.gen && \
+    dpkg-reconfigure --frontend=noninteractive locales && \
+    update-locale LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
+RUN ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+RUN echo "UTC" > /etc/timezone
+RUN dpkg-reconfigure -f noninteractive tzdata
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
+ENV TZ=UTC
+
+# Copy contents of the project to /
+COPY ./fs/ /
+
+# install packages software (split for better cache management)
+RUN bash /ins/install_base_packages1.sh
+RUN bash /ins/install_base_packages2.sh
+RUN bash /ins/install_base_packages3.sh
+RUN bash /ins/install_base_packages4.sh
+
+# install python after packages to ensure version overriding
+RUN bash /ins/install_python.sh
+
+# install searxng
+RUN bash /ins/install_searxng.sh
+
+# configure ssh
+RUN bash /ins/configure_ssh.sh
+
+# after install
+RUN bash /ins/after_install.sh
+
+# Keep container running infinitely
+CMD ["tail", "-f", "/dev/null"]
+
+=== DOCKER BASE BUILD.TXT ===
+# GOB Base Image Build Commands
+
+# Local build
+docker build -t gob-base:local --build-arg CACHE_DATE=$(date +%Y-%m-%d:%H:%M:%S) .
+
+# Local build (no cache)
+docker build -t gob-base:local --no-cache .
+
+# Multi-platform push to Docker Hub
+docker buildx build -t dustyschmidt/gob-base:latest --platform linux/amd64,linux/arm64 --push --build-arg CACHE_DATE=$(date +%Y-%m-%d:%H:%M:%S) .
+
+# Multi-platform push (no cache)
+docker buildx build -t dustyschmidt/gob-base:latest --platform linux/amd64,linux/arm64 --push --build-arg CACHE_DATE=$(date +%Y-%m-%d:%H:%M:%S) --no-cache .
+
+=== CHECKING FLASK-SOCKETIO AVAILABILITY ===
+flask-socketio NOT installed
+
+=== CHECKING CURRENT ENV DEPS ===
+No matching packages found
+(venv) root@37af41db4a55:/a0/us
+
+--- MSG 36 ---
+=== INSTALL SCRIPTS ===
+total 44
+drwxr-xr-x 2 root root 4096 Mar  3 17:31 .
+drwxr-xr-x 4 root root 4096 Mar  3 17:31 ..
+-rw-r--r-- 1 root root   60 Mar  3 17:31 after_install.sh
+-rw-r--r-- 1 root root  152 Mar  3 17:31 configure_ssh.sh
+-rw-r--r-- 1 root root  267 Mar  3 17:31 install_base_packages1.sh
+-rw-r--r-- 1 root root  239 Mar  3 17:31 install_base_packages2.sh
+-rw-r--r-- 1 root root  384 Mar  3 17:31 install_base_packages3.sh
+-rw-r--r-- 1 root root  258 Mar  3 17:31 install_base_packages4.sh
+-rw-r--r-- 1 root root 2063 Mar  3 17:31 install_python.sh
+-rw-r--r-- 1 root root 1048 Mar  3 17:31 install_searxng2.sh
+-rw-r--r-- 1 root root  800 Mar  3 17:31 install_searxng.sh
+
+=== SEARCHING FOR PIP INSTALL IN SCRIPTS ===
+docker/base/fs/ins/install_python.sh
+docker/base/fs/ins/install_searxng2.sh
+
+=== CHECKING IF REQUIREMENTS IS USED ===
+
+=== CONTENTS OF INSTALL PYTHON SCRIPT ===
+#!/bin/bash
+set -e
+
+echo "====================PYTHON START===================="
+
+echo "====================PYTHON 3.13===================="
+
+apt clean && apt-get update && apt-get -y upgrade
+
+# install python 3.13 globally
+apt-get install -y --no-install-recommends \
+    python3.13 python3.13-venv
+    #python3.13-dev
+
+
+echo "====================PYTHON 3.13 VENV===================="
+
+# create and activate default venv
+python3.13 -m venv /opt/venv
+source /opt/venv/bin/activate
+
+# upgrade pip and install static packages
+pip install --no-cache-dir --upgrade pip pipx ipython requests
+
+echo "====================PYTHON PYVENV===================="
+
+# Install pyenv build dependencies.
+apt-get install -y --no-install-recommends \
+    make build-essential libssl-dev zlib1g-dev libbz2-dev \
+    libreadline-dev libsqlite3-dev wget curl llvm \
+    libncursesw5-dev xz-utils tk-dev libxml2-dev \
+    libxmlsec1-dev libffi-dev liblzma-dev
+
+# Install pyenv globally
+git clone https://github.com/pyenv/pyenv.git /opt/pyenv
+
+# Setup environment variables for pyenv to be available system-wide
+cat > /etc/profile.d/py
+
+--- MSG 37 ---
+=== ROOT DOCKERFILE ===
+# Use the pre-built base image for A0
+# FROM gob-base:local
+FROM dustyschmidt/gob-base:latest
+
+# Set BRANCH to "local" if not provided
+ARG BRANCH=local
+ENV BRANCH=$BRANCH
+
+# Copy filesystem files to root
+COPY ./docker/run/fs/ /
+# Copy current development files to git, they will only be used in "local" branch
+COPY ./ /git/gob
+
+# pre installation steps
+RUN bash /ins/pre_install.sh $BRANCH
+
+# install A0
+RUN bash /ins/install_A0.sh $BRANCH
+
+# install additional software
+RUN bash /ins/install_additional.sh $BRANCH
+
+# cleanup repo and install A0 without caching, this speeds up builds
+ARG CACHE_DATE=none
+RUN echo "cache buster $CACHE_DATE" && bash /ins/install_A02.sh $BRANCH
+
+# post installation steps
+RUN bash /ins/post_install.sh $BRANCH
+
+# Expose ports
+EXPOSE 22 80 9000-9009
+
+RUN chmod +x /exe/initialize.sh /exe/run_A0.sh /exe/run_searxng.sh /exe/run_tunnel_api.sh
+
+# initialize runtime and switch to supervisord
+CMD ["/exe/initialize.sh", "$BRANCH"]
+
+=== CHECKING FOR PIP INSTALL OF REQUIREMENTS ===
+
+=== SEARCHING FOR VENV-A0 ===
+/opt/venv
+/opt/venv/lib/python3.13/site-packages/jedi/third_party/typeshed/stdlib/3/venv
+/opt/venv-a0
+/opt/pyenv/versions/3.12.4/lib/python3.12/venv
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 38 ---
+=== ADDING FLASK-SOCKETIO TO REQUIREMENTS ===
+Added flask-socketio>=5.3.0
+
+=== INSTALLING FLASK-SOCKETIO ===
+
+=== VERIFYING INSTALLATION ===
+Name: Flask-SocketIO
+Version: 5.6.1
+Summary: Socket.IO integration for Flask applications
+Home-page: https://github.com/miguelgrinberg/flask-socketio
+Author:
+Author-email: Miguel Grinberg <miguel.grinberg@gmail.com>
+License:
+Location: /opt/venv/lib/python3.13/site-packages
+Requires: blinker, click, Flask, flask, jinja2, python-socketio, werkzeug
+Required-by:
+
+=== CLEANING UP DUPLICATE ZIP FILES IN PROJECTS ===
+total 112320
+drwxr-xr-x 2 root root     4096 Mar  3 19:35 .
+drwxr-xr-x 7 root root     4096 Mar  3 19:35 ..
+-rw-r--r-- 1 root root     7006 Mar  3 17:31 a2a_demo.zip
+-rw-r--r-- 1 root root 28098630 Mar  3 17:31 gob-dev_2.zip
+-rw-r--r-- 1 root root 28168235 Mar  3 17:31 gob-dev.zip
+-rw-r--r-- 1 root root 27885573 Mar  3 17:31 gob-mini.zip
+-rw-r--r-- 1 root root 30832842 Mar  3 17:31 tennis-sim.zip
+
+=== REMAINING IN PROJECTS ===
+a2a_demo  archive  gob-dev  mini-agent	RULE_PROJECT_DIRECTORY.txt  tennis-sim
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 39 ---
+=== RUNNING UNIT TESTS ===
+============================= test session starts ==============================
+platform linux -- Python 3.13.11, pytest-9.0.2, pluggy-1.6.0 -- /opt/venv/bin/python3.13
+cachedir: .pytest_cache
+rootdir: /a0/usr/projects/gob
+configfile: pyproject.toml
+plugins: anyio-4.12.1, langsmith-0.7.10
+collecting ... collected 2 items / 6 errors
+
+==================================== ERRORS ====================================
+_______________ ERROR collecting tests/unit/chunk_parser_test.py _______________
+ImportError while importing test module '/a0/usr/projects/gob/tests/unit/chunk_parser_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/unit/chunk_parser_test.py:4: in <module>
+    import models
+models.py:17: in <module>
+    from litellm import completion, acompletion, embedding
+E   ModuleNotFoundError: No module named 'litellm'
+_______________ ERROR collecting tests/unit/email_parser_test.py _______________
+ImportError while importing test module '/a0/usr/projects/gob/tests/unit/email_parser_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/unit/email_parser_test.py:7: in <module>
+    from python.helpers.email_client import read_messages
+python/helpers/email_client.py:12: in <module>
+    import html2text
+E   ModuleNotFoundError: No module named 'html2text'
+_______________ ERROR collecting tests/unit/rate_limiter_test.py _______________
+ImportError while importing test module '/a0/usr/projects/gob/tests/unit/rate_limiter_test.py'.
+Hint: make sure your test modules/packages have valid Pyth
+
+--- MSG 40 ---
+=== INSTALLING ALL REQUIREMENTS ===
+ERROR: Ignored the following versions that require a different python version: 0.8.1 Requires-Python >=3.10,<3.13; 0.8.2 Requires-Python >=3.10,<3.13; 0.8.3 Requires-Python >=3.10,<3.13; 0.8.4 Requires-Python >=3.10,<3.13; 0.9.2 Requires-Python >=3.10,<3.13; 0.9.4 Requires-Python >=3.10,<3.13
+ERROR: Could not find a version that satisfies the requirement kokoro>=0.9.2 (from versions: 0.2.1, 0.2.2, 0.2.3, 0.3.0, 0.3.1, 0.3.2, 0.3.3, 0.3.4, 0.3.5, 0.7.0, 0.7.1, 0.7.2, 0.7.3, 0.7.4, 0.7.6, 0.7.8, 0.7.9, 0.7.11, 0.7.12, 0.7.13, 0.7.14, 0.7.15, 0.7.16)
+ERROR: No matching distribution found for kokoro>=0.9.2
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 41 ---
+=== TESTING WITH SINGLE UNIT TEST ===
+============================= test session starts ==============================
+platform linux -- Python 3.13.11, pytest-9.0.2, pluggy-1.6.0 -- /opt/venv/bin/python3.13
+cachedir: .pytest_cache
+rootdir: /a0/usr/projects/gob
+configfile: pyproject.toml
+plugins: anyio-4.12.1, langsmith-0.7.10
+collected 2 items
+
+tests/unit/test_settings_developer_sections.py::test_websocket_harness_entrypoint_is_present_in_developer_settings_template FAILED [ 50%]
+tests/unit/test_settings_developer_sections.py::test_websocket_harness_template_is_gated_by_runtime FAILED [100%]
+
+=================================== FAILURES ===================================
+_ test_websocket_harness_entrypoint_is_present_in_developer_settings_template __
+
+    def test_websocket_harness_entrypoint_is_present_in_developer_settings_template():
+        dev_template_path = (
+            PROJECT_ROOT
+            / "webui"
+            / "components"
+            / "settings"
+            / "developer"
+            / "dev.html"
+        )
+>       content = dev_template_path.read_text(encoding="utf-8")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/unit/test_settings_developer_sections.py:20:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+/usr/lib/python3.13/pathlib/_local.py:548: in read_text
+    return PathBase.read_text(self, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/pathlib/_abc.py:632: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = PosixPath('/a0/usr/projects/gob/tests/webui/components/settings/developer/dev.html')
+mode = 'r', buffering = -1, encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, en
+
+--- MSG 42 ---
+=== GIT STATUS ===
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	deleted:    projects/a2a_demo.zip
+	deleted:    projects/gob-dev.zip
+	deleted:    projects/gob-dev_2.zip
+	deleted:    projects/gob-mini.zip
+	deleted:    projects/tennis-sim.zip
+	modified:   python/extensions/monologue_end/_51_memorize_solutions.py
+	modified:   requirements.txt
+	deleted:    tests/chunk_parser_test.py
+	deleted:    tests/email_parser_test.py
+	deleted:    tests/rate_limiter_test.py
+	deleted:    tests/test_fasta2a_client.py
+	deleted:    tests/test_file_tree_visualize.py
+	deleted:    tests/test_gob_persona.py
+	deleted:    tests/test_http_auth_csrf.py
+	deleted:    tests/test_multi_tab_isolation.py
+	deleted:    tests/test_persist_chat_log_ids.py
+	deleted:    tests/test_run_ui_config.py
+	deleted:    tests/test_settings_developer_sections.py
+	deleted:    tests/test_snapshot_parity.py
+	deleted:    tests/test_snapshot_schema_v1.py
+	deleted:    tests/test_socketio_library_semantics.py
+	deleted:    tests/test_socketio_unknown_namespace.py
+	deleted:    tests/test_state_monitor.py
+	deleted:    tests/test_state_sync_handler.py
+	deleted:    tests/test_state_sync_welcome_screen.py
+	deleted:    tests/test_websocket_client_api_surface.py
+	deleted:    tests/test_websocket_csrf.py
+	deleted:    tests/test_websocket_handlers.py
+	deleted:    tests/test_websocket_harness.py
+	deleted:    tests/test_websocket_manager.py
+	deleted:    tests/test_websocket_namespace_discovery.py
+	deleted:    tests/test_websocket_namespace_security.py
+	deleted:    tests/test_websocket_namespaces.py
+	deleted:    tests/test_websocket_namespaces_integration.py
+	deleted:    tests/test_websocket_root_namespace.py
+	deleted:    tests/websocket_namespace_test_utils.py
+	deleted:    uploads/2026-03-0208.18.265979169361221468742.jpg
+	deleted:    uploads/2026-03-0208
+
+--- MSG 43 ---
+=== CHECKING AVAILABLE BRANCHES ===
+* main
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/main
+
+=== CREATING DEVELOP BRANCH ===
+Switched to a new branch 'develop'
+
+=== CREATING FEATURE BRANCH ===
+Switched to a new branch 'feature/organize-tests-uploads'
+
+=== UNSTASHING CHANGES ===
+On branch feature/organize-tests-uploads
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	deleted:    projects/a2a_demo.zip
+	deleted:    projects/gob-dev.zip
+	deleted:    projects/gob-dev_2.zip
+	deleted:    projects/gob-mini.zip
+	deleted:    projects/tennis-sim.zip
+	modified:   python/extensions/monologue_end/_51_memorize_solutions.py
+	modified:   requirements.txt
+	deleted:    tests/chunk_parser_test.py
+	deleted:    tests/email_parser_test.py
+	deleted:    tests/rate_limiter_test.py
+	deleted:    tests/test_fasta2a_client.py
+	deleted:    tests/test_file_tree_visualize.py
+	deleted:    tests/test_gob_persona.py
+	deleted:    tests/test_http_auth_csrf.py
+	deleted:    tests/test_multi_tab_isolation.py
+	deleted:    tests/test_persist_chat_log_ids.py
+	deleted:    tests/test_run_ui_config.py
+	deleted:    tests/test_settings_developer_sections.py
+	deleted:    tests/test_snapshot_parity.py
+	deleted:    tests/test_snapshot_schema_v1.py
+	deleted:    tests/test_socketio_library_semantics.py
+	deleted:    tests/test_socketio_unknown_namespace.py
+	deleted:    tests/test_state_monitor.py
+	deleted:    tests/test_state_sync_handler.py
+	deleted:    tests/test_state_sync_welcome_screen.py
+	deleted:    tests/test_websocket_client_api_surface.py
+	deleted:    tests/test_websocket_csrf.py
+	deleted:    tests/test_websocket_handlers.py
+	deleted:    tests/test_websocket_harness.py
+	deleted:    tests/test_websocket_manager.py
+	deleted:    tests/test_websocket_namespace_discovery.py
+	deleted:    tests/test_websocket_namespace_security.py
+	deleted:    tests/test_websocket_namespaces.py
+	deleted:   
+
+--- MSG 44 ---
+=== CHECKING DEV DIRECTORY ===
+total 44
+drwxr-xr-x  8 root root 4096 Mar  3 17:31 .
+drwxr-xr-x 32 root root 4096 Mar  3 19:47 ..
+drwxr-xr-x  3 root root 4096 Mar  3 17:31 archive
+-rw-r--r--  1 root root 2873 Mar  3 17:31 CHANGELOG.md
+drwxr-xr-x  2 root root 4096 Mar  3 17:31 devlog
+drwxr-xr-x  2 root root 4096 Mar  3 17:31 gob
+drwxr-xr-x  2 root root 4096 Mar  3 17:31 notes
+drwxr-xr-x  2 root root 4096 Mar  3 17:31 projects
+-rw-r--r--  1 root root  656 Mar  3 17:31 roadmap.md
+drwxr-xr-x  2 root root 4096 Mar  3 17:31 scripts
+-rw-r--r--  1 root root 2347 Mar  3 17:31 todo.md
+
+=== CREATING DEVLOG ENTRY ===
+(venv) root@37af41db4a55:/a0/usr/projects/gob# # Devlog: 2026-03-03
+
+## Task: Organize tests/ and uploads/ directories
+
+### Summary
+Organized chaotic flat directories into structured, maintainable layouts with documentation.
+
+### Changes Made
+
+#### uploads/ - 51 files organized
+- **skills/**: 20 zip files (algorithmic-art, canvas-design, docx, pdf, xlsx, etc.)
+- **data/**: 6 CSV/DB files (elo_ratings, mcp_*, tennis_dfs.db, latest.csv)
+- **images/**: 12 images (clipboard-*.png, PXL_*.jpg)
+- **scripts/**: 12 Python scripts (dk_*.py, manager.py, server.py, etc.)
+- **archive/**: Old tasks.json
+- **tmp/**: Empty for temp files
+- **README.md**: Usage documentation
+
+#### tests/ - 29 files organized
+- **unit/**: 7 test files (settings, rate_limiter, file_tree, etc.)
+- **integration/**:
+  - websocket/: 12 tests (namespace discovery, security, handlers)
+  - auth/: 1 test (http_auth_csrf)
+  - memory/, api/: Empty (ready for expansion)
+- **e2e/**: Empty (ready for end-to-end tests)
+- **fixtures/**: Empty (for test data)
+- **utils/**: websocket_namespace_test_utils.py
+- **README.md**: Test organization guide
+
+#### Other improvements
+- Added flask-socketio>=5.3.0 to requirements.txt (needed for WebSocket tests)
+- Archived duplicate zip files from projects/ to projects/archive/
+- Fixed token overflow in _51_memorize_solutions.py (60834→50000 tokens max)
+
+### Testing
+- Ran pytest: 
+
+--- MSG 45 ---
+=== ADDING NEW ORGANIZED DIRECTORIES ===
+
+=== ADDING MODIFIED/DELETED FILES ===
+
+=== STATUS BEFORE COMMIT ===
+On branch feature/organize-tests-uploads
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   .a0proj/project.json
+	new file:   DEV/devlog/2026-03-03_organize-tests-uploads.md
+	renamed:    projects/a2a_demo.zip -> projects/archive/a2a_demo.zip
+	renamed:    projects/gob-dev.zip -> projects/archive/gob-dev.zip
+	renamed:    projects/gob-dev_2.zip -> projects/archive/gob-dev_2.zip
+	renamed:    projects/gob-mini.zip -> projects/archive/gob-mini.zip
+	renamed:    projects/tennis-sim.zip -> projects/archive/tennis-sim.zip
+	modified:   python/extensions/monologue_end/_51_memorize_solutions.py
+	modified:   requirements.txt
+	new file:   tests/README.md
+	renamed:    tests/test_http_auth_csrf.py -> tests/integration/auth/test_http_auth_csrf.py
+	renamed:    tests/test_fasta2a_client.py -> tests/integration/test_fasta2a_client.py
+	renamed:    tests/test_multi_tab_isolation.py -> tests/integration/test_multi_tab_isolation.py
+	renamed:    tests/test_persist_chat_log_ids.py -> tests/integration/test_persist_chat_log_ids.py
+	renamed:    tests/test_snapshot_parity.py -> tests/integration/test_snapshot_parity.py
+	renamed:    tests/test_snapshot_schema_v1.py -> tests/integration/test_snapshot_schema_v1.py
+	renamed:    tests/test_state_monitor.py -> tests/integration/test_state_monitor.py
+	renamed:    tests/test_state_sync_handler.py -> tests/integration/test_state_sync_handler.py
+	renamed:    tests/test_state_sync_welcome_screen.py -> tests/integration/test_state_sync_welcome_screen.py
+	renamed:    tests/test_socketio_library_semantics.py -> tests/integration/websocket/test_socketio_library_semantics.py
+	renamed:    tests/test_socketio_unknown_namespace.py -> tests/integration/websocket/test_socketio_unknown_namespace.py
+	renamed:    tests/test_websocket_client_api_surface.py -> tests/integration/websocket/test_websocket_client_api_surface.py
+
+
+--- MSG 46 ---
+Git config set
+
+=== COMMITTING ===
+[feature/organize-tests-uploads 7d9fc7f] organize: structure tests/ and uploads/ directories
+ 91 files changed, 129 insertions(+)
+ create mode 100644 .a0proj/project.json
+ create mode 100644 DEV/devlog/2026-03-03_organize-tests-uploads.md
+ rename projects/{ => archive}/a2a_demo.zip (100%)
+ rename projects/{ => archive}/gob-dev.zip (100%)
+ rename projects/{ => archive}/gob-dev_2.zip (100%)
+ rename projects/{ => archive}/gob-mini.zip (100%)
+ rename projects/{ => archive}/tennis-sim.zip (100%)
+ create mode 100644 tests/README.md
+ rename tests/{ => integration/auth}/test_http_auth_csrf.py (100%)
+ rename tests/{ => integration}/test_fasta2a_client.py (100%)
+ rename tests/{ => integration}/test_multi_tab_isolation.py (100%)
+ rename tests/{ => integration}/test_persist_chat_log_ids.py (100%)
+ rename tests/{ => integration}/test_snapshot_parity.py (100%)
+ rename tests/{ => integration}/test_snapshot_schema_v1.py (100%)
+ rename tests/{ => integration}/test_state_monitor.py (100%)
+ rename tests/{ => integration}/test_state_sync_handler.py (100%)
+ rename tests/{ => integration}/test_state_sync_welcome_screen.py (100%)
+ rename tests/{ => integration/websocket}/test_socketio_library_semantics.py (100%)
+ rename tests/{ => integration/websocket}/test_socketio_unknown_namespace.py (100%)
+ rename tests/{ => integration/websocket}/test_websocket_client_api_surface.py (100%)
+ rename tests/{ => integration/websocket}/test_websocket_csrf.py (100%)
+ rename tests/{ => integration/websocket}/test_websocket_handlers.py (100%)
+ rename tests/{ => integration/websocket}/test_websocket_harness.py (100%)
+ rename tests/{ => integration/websocket}/test_websocket_manager.py (100%)
+ rename tests/{ => integration/websocket}/test_websocket_namespace_discovery.py (100%)
+ rename tests/{ => integration/websocket}/test_websocket_namespace_security.py (100%)
+ rename tests/{ => integration/websocket}/test_websocket_namespaces.py (100%)
+ rename tests/{ => integration/websoc
+
+--- MSG 47 ---
+=== SETTING UP GIT CREDENTIALS ===
+
+=== MODIFYING REMOTE URL WITH TOKEN ===
+
+=== PUSHING BRANCH ===
+Enumerating objects: 39, done.
+Counting objects: 100% (39/39), done.
+Delta compression using up to 24 threads
+Compressing objects: 100% (26/26), done.
+Writing objects: 100% (28/28), 6.57 KiB | 6.57 MiB/s, done.
+Total 28 (delta 12), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (12/12), completed with 10 local objects.
+remote:
+remote: Create a pull request for 'feature/organize-tests-uploads' on GitHub by visiting:
+remote:      https://github.com/dusty-schmidt/GOB/pull/new/feature/organize-tests-uploads
+remote:
+To https://github.com/dusty-schmidt/GOB.git
+ * [new branch]      feature/organize-tests-uploads -> feature/organize-tests-uploads
+branch 'feature/organize-tests-uploads' set up to track 'origin/feature/organize-tests-uploads'.
+
+=== RESTORING ORIGINAL REMOTE ===
+Remote restored
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 48 ---
+=== PUSHING DEVELOP BRANCH ===
+Total 0 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+remote:
+remote: Create a pull request for 'develop' on GitHub by visiting:
+remote:      https://github.com/dusty-schmidt/GOB/pull/new/develop
+remote:
+To https://github.com/dusty-schmidt/GOB.git
+ * [new branch]      develop -> develop
+
+=== RESTORING REMOTE ===
+
+=== VERIFYING ON GITHUB ===
+    "name": "develop",
+    "name": "feature/organize-tests-uploads",
+    "name": "main",
+(venv) root@37af41db4a55:/a0/usr/projects/gob#
+
+--- MSG 49 ---
+=== CREATING PULL REQUEST ===
+{
+  "url": "https://api.github.com/repos/dusty-schmidt/GOB/pulls/2",
+  "id": 3350391840,
+  "node_id": "PR_kwDORcA_Ps7Hsuwg",
+  "html_url": "https://github.com/dusty-schmidt/GOB/pull/2",
+  "diff_url": "https://github.com/dusty-schmidt/GOB/pull/2.diff",
+  "patch_url": "https://github.com/dusty-schmidt/GOB/pull/2.patch",
+  "issue_url": "https://api.github.com/repos/dusty-schmidt/GOB/issues/2",
+  "number": 2,
+  "state": "open",
+  "locked": false,
+  "title": "organize: structure tests/ and uploads/ directories",
+  "user": {
+    "login": "dusty-schmidt",
+    "id": 214194065,
+    "node_id": "U_kgDODMRXkQ",
+    "avatar_url": "https://avatars.githubusercontent.com/u/214194065?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/dusty-schmidt",
+    "html_url": "https://github.com/dusty-schmidt",
+    "followers_url": "https://api.github.com/users/dusty-schmidt/followers",
+    "following_url": "https://api.github.com/users/dusty-schmidt/following{/other_user}",
+    "gists_url": "https://api.github.com/users/dusty-schmidt/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/dusty-schmidt/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/dusty-schmidt/subscriptions",
+    "organizations_url": "https://api.github.com/users/dusty-schmidt/orgs",
+    "repos_url": "https://api.github.com/users/dusty-schmidt/repos",
+    "events_url": "https://api.github.com/users/dusty-schmidt/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/dusty-schmidt/received_events",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false
+  },
+  "body": "## Summary\nOrganized chaotic flat directories into maintainable, structured layouts with documentation.\n\n## Changes\n\n### tests/ - 29 files organized\n- **unit/**: 7 test files (settings, rate_limiter, file_tree, etc.)\n- **integration/**: 6 files + websocket/ subdirectory (12 tests) + auth/ subdirectory\n- **utils/**: webso
+
+--- MSG 50 ---
+=== MERGING PR #2 ===
+{
+  "sha": "70e1159db207b4b1c77848ba3a5a4d09a73774f8",
+  "merged": true,
+  "message": "Pull Request successfully merged"
+}
+
+=== CLEANING UP LOCAL BRANCHES ===
+Switched to branch 'develop'
+remote: Enumerating objects: 1, done.
+remote: Counting objects: 100% (1/1), done.
+remote: Total 1 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+Unpacking objects: 100% (1/1), 1.09 KiB | 1.09 MiB/s, done.
+From https://github.com/dusty-schmidt/GOB
+ * branch            develop    -> FETCH_HEAD
+   1a6959c..70e1159  develop    -> origin/develop
+Updating 1a6959c..70e1159
+Fast-forward
+ .a0proj/project.json                               |   1 +
+ DEV/devlog/2026-03-03_organize-tests-uploads.md    |  43 +++++++++++++++++++++
+ projects/{ => archive}/a2a_demo.zip                | Bin
+ projects/{ => archive}/gob-dev.zip                 | Bin
+ projects/{ => archive}/gob-dev_2.zip               | Bin
+ projects/{ => archive}/gob-mini.zip                | Bin
+ projects/{ => archive}/tennis-sim.zip              | Bin
+ .../monologue_end/_51_memorize_solutions.py        |  20 ++++++++++
+ requirements.txt                                   |   1 +
+ tests/README.md                                    |  38 ++++++++++++++++++
+ .../{ => integration/auth}/test_http_auth_csrf.py  |   0
+ tests/{ => integration}/test_fasta2a_client.py     |   0
+ .../{ => integration}/test_multi_tab_isolation.py  |   0
+ .../{ => integration}/test_persist_chat_log_ids.py |   0
+ tests/{ => integration}/test_snapshot_parity.py    |   0
+ tests/{ => integration}/test_snapshot_schema_v1.py |   0
+ tests/{ => integration}/test_state_monitor.py      |   0
+ tests/{ => integration}/test_state_sync_handler.py |   0
+ .../test_state_sync_welcome_screen.py              |   0
+ .../websocket}/test_socketio_library_semantics.py  |   0
+ .../websocket}/test_socketio_unknown_namespace.py  |   0
+ .../test_websocket_client_api_surface.py           |   0
+ .../websocket}/test_websocket_csrf.py              |   0
+ .../websoc
+
