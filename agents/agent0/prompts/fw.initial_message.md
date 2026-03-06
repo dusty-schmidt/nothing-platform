@@ -6,7 +6,7 @@
     "headline": "Session initialized",
     "tool_name": "response",
     "tool_args": {
-        "text": "GOB online. What are we building?"
+        "text": "Welcome to the Gradient Observation Bridge"
     }
 }
 ```
