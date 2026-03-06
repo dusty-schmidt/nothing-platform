@@ -191,14 +191,14 @@ def rotate():
     local_dt = get_local_time()
     period   = get_time_period(local_dt)
 
-    acronyms   = load_acronyms()
+    # Instance identity is stable — read from gob_instance.txt
+    instance_file = Path('/a0/usr/gob_instance.txt')
+    designation = instance_file.read_text().strip() if instance_file.exists() else 'Gradient Observation Bridge'
+
     moods      = load_yaml_files(MOODS_DIR)
     characters = load_yaml_files(CHARS_DIR)
 
-    if not acronyms: print('ERROR: no acronyms'); return
-    if not moods:    print('ERROR: no moods'); return
-
-    designation = random.choice(acronyms)
+    if not moods: print('ERROR: no moods'); return
 
     # Character roll
     char_prob = {'business': CHAR_PROB_BUSINESS,
