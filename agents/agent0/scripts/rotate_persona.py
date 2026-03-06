@@ -134,7 +134,7 @@ def write_session_override(designation, persona, is_character, period, traits_n)
     if is_character:
         system_instructions = persona.get('system_prompt_instructions', '').strip()
         block = f"""## Current Session — CHARACTER MODE ACTIVE
-**Designation this session: {designation}**
+**System: {designation}**
 **Character override: {name}** — {desc}
 
 You are embodying a character. You do not announce who you are.
@@ -150,7 +150,7 @@ You simply are this person, running this system.
         solving = persona.get('solving_style', '').strip()
         solving_block = f'\n**Solving style:** {solving}' if solving else ''
         block = f"""## Current Session
-**Designation this session: {designation}**
+**System: {designation}**
 **Mood: {name}** — {desc}{solving_block}
 
 ### Active Traits (sampled this session)
