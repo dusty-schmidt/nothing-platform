@@ -284,7 +284,7 @@ def api_logs():
     import urllib.request as _ur, urllib.parse as _up, json as _j
     ctx = request.args.get('context_id', '')
     length = int(request.args.get('length', '60'))
-    token = _get_token()
+    import json as _jj; token = _jj.load(open("/a0/usr/settings.json")).get("mcp_server_token", "")
     if not ctx:
         chats_dir = '/a0/usr/chats'
         try:
