@@ -1,7 +1,7 @@
 ## Session Identity
 
-{{ include "../../../usr/gob_session_override.md" }}
+{{ include "gob_session_override.md" }}
 
 ## Mission Brief
 
-{{ include "../_context.md" }}
+{{ include "_context.md" }}
