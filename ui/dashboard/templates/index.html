@@ -22,7 +22,7 @@
     <span class="instance-name" id="instance-name">Gradient Observation Bridge</span>
   </div>
   <div class="header-center">
-    <span class="mood-badge" id="mood-badge">—</span>
+    <span class="mood-badge" id="mood-badge">&#8212;</span>
     <span class="char-badge" id="char-badge" style="display:none"></span>
   </div>
   <div class="header-right">
@@ -45,12 +45,12 @@
   <aside class="sidebar">
     <div class="panel ghost-panel">
       <div class="panel-label">CURRENT GHOST</div>
-      <div class="ghost-mood" id="ghost-mood">—</div>
+      <div class="ghost-mood" id="ghost-mood">&#8212;</div>
       <div class="ghost-char" id="ghost-char"></div>
       <div class="ghost-traits" id="ghost-traits"></div>
       <div class="divider"></div>
       <div class="panel-label">NEXT ROTATION</div>
-      <div class="countdown" id="countdown">—</div>
+      <div class="countdown" id="countdown">&#8212;</div>
     </div>
     <div class="panel status-panel">
       <div class="panel-label">SYSTEM</div>
@@ -68,6 +68,7 @@
       <button class="tab" data-tab="graveyard">GRAVEYARD</button>
       <button class="tab" data-tab="roster">ROSTER</button>
       <button class="tab" data-tab="chat">CHAT</button>
+      <button class="tab" data-tab="logs">LOGS</button>
     </div>
 
     <!-- Chronicle -->
@@ -96,15 +97,17 @@
         <select id="context-select" class="context-select">
           <option value="">new conversation</option>
         </select>
-        <button id="context-refresh" class="context-refresh-btn" title="refresh contexts">↻</button>
+        <button id="context-refresh" class="context-refresh-btn" title="refresh contexts">&#8635;</button>
       </div>
-            <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-messages" id="chat-messages"></div>
       <div class="chat-input-row">
         <span class="ps1">GOB://</span>
         <input type="text" id="chat-input" placeholder="send a message..." autocomplete="off">
         <button id="chat-send">SEND</button>
       </div>
     </div>
+
+    <!-- Logs -->
     <div class="tab-content" id="tab-logs">
       <div class="log-controls">
         <span class="log-ctx-label">CONTEXT</span>
@@ -114,16 +117,17 @@
       </div>
       <div class="log-feed" id="log-feed"><div class="log-line">// paste a context id above</div></div>
     </div>
+
   </main>
 </div>
 
 <!-- Bottom metrics bar -->
 <div class="metbar">
-  <div class="met"><span class="met-k">MOOD</span> <span class="met-v" id="met-mood">—</span></div>
+  <div class="met"><span class="met-k">MOOD</span> <span class="met-v" id="met-mood">&#8212;</span></div>
   <div class="met"><span class="met-k">CHARACTER</span> <span class="met-v" id="met-char">none</span></div>
-  <div class="met"><span class="met-k">CHRONICLE</span> <span class="met-v" id="met-lines">—</span> entries</div>
-  <div class="met"><span class="met-k">UPDATED</span> <span class="met-v" id="met-updated">—</span></div>
-  <div class="met met-right"><span class="met-v dim">nothing-platform v0.1 · gob dashboard</span></div>
+  <div class="met"><span class="met-k">CHRONICLE</span> <span class="met-v" id="met-lines">&#8212;</span> entries</div>
+  <div class="met"><span class="met-k">UPDATED</span> <span class="met-v" id="met-updated">&#8212;</span></div>
+  <div class="met met-right"><span class="met-v dim">nothing-platform v0.1 &middot; gob dashboard</span></div>
 </div>
 
 <script src="/static/app.js"></script>

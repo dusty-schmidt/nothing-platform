@@ -280,7 +280,14 @@ function updateThought() {
         el.style.opacity = '1';
       }, 400);
     })
-    .catch(() => {});
+    .catch((err) => {
+    console.warn('updateThought fetch failed:', err);
+    const el = document.getElementById('thought-text');
+    if (el) {
+      el.textContent = 'signal absent.';
+      el.style.opacity = '1';
+    }
+  });
 }
 
 // Load thought on page load, refresh every 15 minutes
@@ -344,7 +351,7 @@ if (refreshBtn) {
 
 // Logs tab
 let logsAutoTimer = null;
-function classifyLine(t) {
+function classifyLogLine(t) {
   const s = t.toLowerCase();
   if (s.includes('error') || s.includes('traceback')) return 'log-error';
   if (s.includes('tool_name') || s.includes('executing')) return 'log-tool';
@@ -366,7 +373,7 @@ async function fetchLogs() {
     lines.forEach(item => {
       const text = typeof item === 'string' ? item : (item.content || JSON.stringify(item));
       const div = document.createElement('div');
-      div.className = 'log-line ' + classifyLine(text);
+      div.className = 'log-line ' + classifyLogLine(text);
       div.textContent = text.slice(0, 500);
       feed.appendChild(div);
     });
