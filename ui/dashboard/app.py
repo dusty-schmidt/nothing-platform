@@ -277,6 +277,44 @@ def api_contexts():
     return jsonify({'contexts': contexts})
 
 
+
+
+@app.route('/api/logs')
+def api_logs():
+    import urllib.request as _ur, urllib.parse as _up, json as _j
+    ctx = request.args.get('context_id', '')
+    length = int(request.args.get('length', '60'))
+    token = _get_token()
+    if not ctx:
+        chats_dir = '/a0/usr/chats'
+        try:
+            out = []
+            for name in sorted(os.listdir(chats_dir), reverse=True):
+                p = os.path.join(chats_dir, name)
+                if os.path.isdir(p):
+                    msgs = os.path.join(p, 'messages')
+                    count = len(os.listdir(msgs)) if os.path.isdir(msgs) else 0
+                    out.append({'id': name, 'messages': count, 'mtime': os.path.getmtime(p)})
+            return jsonify({'contexts': out})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    try:
+        msgs_dir = '/a0/usr/chats/' + ctx + '/messages'
+        lines = []
+        if os.path.isdir(msgs_dir):
+            files = sorted(os.listdir(msgs_dir),
+                key=lambda x: int(x.split('.')[0]) if x.split('.')[0].isdigit() else 0)
+            for fname in files[-length:]:
+                fp = os.path.join(msgs_dir, fname)
+                try:
+                    raw = open(fp, errors='replace').read(500)
+                    lines.append({'num': fname, 'content': raw.strip()})
+                except Exception:
+                    pass
+        return jsonify({'lines': lines, 'source': 'disk', 'context_id': ctx})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     print('GOB Dashboard starting on port 7842')
     app.run(host='0.0.0.0', port=7842, debug=False, threaded=True)

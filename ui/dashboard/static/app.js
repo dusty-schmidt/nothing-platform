@@ -340,3 +340,57 @@ if (refreshBtn) {
     loadContexts();
   });
 }
+
+
+// Logs tab
+let logsAutoTimer = null;
+function classifyLine(t) {
+  const s = t.toLowerCase();
+  if (s.includes('error') || s.includes('traceback')) return 'log-error';
+  if (s.includes('tool_name') || s.includes('executing')) return 'log-tool';
+  if (s.includes('response') || s.includes('headline')) return 'log-response';
+  if (s.includes('thought')) return 'log-thought';
+  return '';
+}
+async function fetchLogs() {
+  const ctx = document.getElementById('log-ctx-input').value.trim();
+  if (!ctx) return;
+  const feed = document.getElementById('log-feed');
+  feed.innerHTML = '<div class="log-line">// fetching...</div>';
+  try {
+    const r = await fetch('/api/logs?context_id=' + encodeURIComponent(ctx) + '&length=60');
+    const data = await r.json();
+    feed.innerHTML = '';
+    const lines = data.lines || data.log || [];
+    if (!lines.length) { feed.innerHTML = '<div class="log-line">// no data for this context</div>'; return; }
+    lines.forEach(item => {
+      const text = typeof item === 'string' ? item : (item.content || JSON.stringify(item));
+      const div = document.createElement('div');
+      div.className = 'log-line ' + classifyLine(text);
+      div.textContent = text.slice(0, 500);
+      feed.appendChild(div);
+    });
+    feed.scrollTop = feed.scrollHeight;
+  } catch(e) {
+    feed.innerHTML = '<div class="log-line log-error">// fetch failed: ' + e.message + '</div>';
+  }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const rb = document.getElementById('log-refresh');
+  const ab = document.getElementById('log-auto-toggle');
+  const ci = document.getElementById('log-ctx-input');
+  if (!rb) return;
+  rb.addEventListener('click', fetchLogs);
+  ci.addEventListener('keydown', e => { if (e.key === 'Enter') fetchLogs(); });
+  ab.addEventListener('click', () => {
+    if (logsAutoTimer) {
+      clearInterval(logsAutoTimer);
+      logsAutoTimer = null;
+      ab.textContent = 'AUTO: OFF';
+    } else {
+      fetchLogs();
+      logsAutoTimer = setInterval(fetchLogs, 5000);
+      ab.textContent = 'AUTO: ON';
+    }
+  });
+});

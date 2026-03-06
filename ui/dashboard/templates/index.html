@@ -105,8 +105,16 @@
         <button id="chat-send">SEND</button>
       </div>
     </div>
+    <div class="tab-content" id="tab-logs">
+      <div class="log-controls">
+        <span class="log-ctx-label">CONTEXT</span>
+        <input type="text" class="log-ctx-input" id="log-ctx-input" placeholder="context id...">
+        <button class="log-refresh-btn" id="log-refresh">FETCH</button>
+        <button class="log-refresh-btn" id="log-auto-toggle" style="margin-left:auto">AUTO: OFF</button>
+      </div>
+      <div class="log-feed" id="log-feed"><div class="log-line">// paste a context id above</div></div>
+    </div>
   </main>
-
 </div>
 
 <!-- Bottom metrics bar -->
