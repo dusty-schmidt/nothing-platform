@@ -5,12 +5,12 @@ from flask import Flask, render_template, jsonify, request, Response, stream_wit
 app = Flask(__name__)
 
 # Paths to GOB system files
-GOB_ROOT = '/a0/agents/agent0'
-CHRONICLE = os.path.join(GOB_ROOT, 'gob_chronicle.txt')
-SESSION_OVERRIDE = os.path.join(GOB_ROOT, 'gob_session_override.md')
-INSTANCE_FILE = os.path.join(GOB_ROOT, 'gob_instance.txt')
-CHARACTERS_DIR = os.path.join(GOB_ROOT, 'personas/characters')
-MOODS_DIR = os.path.join(GOB_ROOT, 'personas/moods')
+GOB_ROOT = '/a0/usr'
+CHRONICLE = '/a0/usr/gob_chronicle.txt'
+SESSION_OVERRIDE = '/a0/usr/gob_session_override.md'
+INSTANCE_FILE = '/a0/usr/gob_instance.txt'
+CHARACTERS_DIR = '/a0/agents/agent0/personas/characters'
+MOODS_DIR = '/a0/agents/agent0/personas/moods'
 LINEAGE = '/a0/usr/workdir/nothing-platform/chronicle/INSTANCE_LINEAGE.md'
 GOB_API = 'http://localhost:8383'
 
