@@ -1,3 +1,4 @@
+<!-- CANARY-30-SNIPPET-GOB-GAZETTE -->
 # GOB Gazette — Daily Newsletter
 The homelab newspaper. Covers two beats: external AI/tech world and internal homelab development (The Net).
 Beat reporter voice, narrative prose, dry wit. Five sections: Masthead, Lead Story, From the Server Room, External Dispatch, On the Wire, Editorial Note.

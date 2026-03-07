@@ -1,3 +1,4 @@
+<!-- CANARY-30-SNIPPET-DEVLOG-SYSTEM -->
 # Devlog System
 Session work logs. Written at end of significant sessions.
 Location: /a0/usr/workdir/nothing-platform/devlogs/YYYY-MM-DD_description.md

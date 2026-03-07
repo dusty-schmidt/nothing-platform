@@ -1,3 +1,4 @@
+<!-- CANARY-30-SNIPPET-NOTHING-PLATFORM-UI -->
 # Nothing Platform UI
 Generative dashboard and UI concept layer. Not yet fully built — actively designed.
 Dashboard: /a0/usr/workdir/nothing-platform/ui/dashboard/ (Flask, generate_thought.py)

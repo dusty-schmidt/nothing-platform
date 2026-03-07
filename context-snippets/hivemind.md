@@ -1,3 +1,4 @@
+<!-- CANARY-30-SNIPPET-HIVEMIND -->
 # Hivemind — Collective Memory Hub
 Flask + SQLite collective memory. Agents register and share memory across the hive.
 Endpoints: POST /api/save_memory, GET /api/get_memory, /api/register

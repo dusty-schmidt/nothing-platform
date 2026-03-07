@@ -1,3 +1,4 @@
+<!-- CANARY-30-SNIPPET-THE-BRIDGE -->
 # The Bridge — Narrative Simulation Layer
 Devices on the network (router, sensors, storage) are characters with traits: curiosity, courage, pragmatism, paranoia.
 Gain XP. Generate events. Fate Engine produces Packet Storms and Harmony States.

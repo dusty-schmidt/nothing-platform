@@ -38,7 +38,7 @@ Each entry is an index pointer. Full detail in the snippet file.
 |---|---|---|
 | **GOB Gazette** | Daily newsletter, two beats: external AI/tech + homelab | gob-gazette.md |
 | **AI Digest** | Daily AI/tech news aggregator, feeds Gazette | ai-digest.md |
-| **Essay System** | Published longform from The Net, indexed | essay-system.md |
+| **Essay System** | Published longform from The Net, indexed (4 essays) | essay-system.md |
 | **The Bridge** | Device personalities, lore layer, narrative simulation | the-bridge.md |
 | **Hivemind** | Collective memory hub, Flask+SQLite, agent registration | hivemind.md |
 | **Badfaith Times** | Editorial/opinion sister publication | badfaith-times.md |
@@ -46,6 +46,7 @@ Each entry is an index pointer. Full detail in the snippet file.
 | **GOB Dashboard** | Flask+React management interface: chat, scheduler, roster, graveyard | gob-dashboard.md |
 | **DFS Tools** | NBA/DFS strategy skills and scripts | dfs-tools.md |
 | **Devlog System** | Session work logs, feeds Gazette + assembler | devlog-system.md |
+| **Smoke Test** | Canary-tagged backups of all 23 prompt stack files | smoke-test.md |
 
 ## Context Architecture
 Four layers. Do not conflate.

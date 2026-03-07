@@ -1,3 +1,4 @@
+<!-- CANARY-30-SNIPPET-CONTEXT-SYSTEM -->
 # Context System — Four-Layer Architecture
 The system uses four distinct layers. Do not conflate them.
 1. Skills — executable capabilities, listed in prompt, full instructions load on demand via skills_tool:load
